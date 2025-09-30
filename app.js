@@ -9,7 +9,7 @@ console.log('Supabase connection initialized:', supabaseClient);
 // --- 2. GLOBAL VARIABLES ---
 
 // A unique ID for this player's session.
-const myId = Math.random().toString(36).substring(2, 9);
+const myId = crypto.randomUUID();
 console.log('My session ID:', myId);
 
 // An object to store the position and data of all other players
