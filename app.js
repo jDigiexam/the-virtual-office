@@ -7,62 +7,33 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // --- 2. GLOBAL VARIABLES ---
 const myId = crypto.randomUUID();
 const otherPlayers = {};
-let player = {}; // Player object will be created after joining
-let avatarImages = {}; // To store the loaded image assets
-let gameReady = false; // A flag to control when the game starts
+let player = {};
+let avatarImages = {};
+let gameReady = false;
 
-// --- 3. p5.js PRELOAD FUNCTION ---
-// p5.js calls this function before setup() to ensure assets are loaded
+// --- 3. p5.js PRELOAD, SETUP, AND DRAW ---
 function preload() {
   avatarImages.avatar1 = loadImage('avatar1.png');
   avatarImages.avatar2 = loadImage('avatar2.png');
   avatarImages.avatar3 = loadImage('avatar3.png');
 }
 
-// --- 4. p5.js SETUP AND DRAW ---
-
-// This function runs once when the sketch starts
 function setup() {
-  createCanvas(800, 600);
-  // We'll wait to draw anything until the user has joined
-  noLoop(); // Stop the draw loop initially
-  textAlign(CENTER); // Set text alignment for names
+  const canvas = createCanvas(800, 600);
+  canvas.parent('main-container'); // Attach canvas to our main container
+  noLoop();
+  textAlign(CENTER);
   textSize(14);
 }
 
-// This function runs in a loop after loop() is called
 function draw() {
-  if (!gameReady) return; // Don't do anything if the game hasn't started
-
-  background(220); // Light grey background
-
-  // --- HANDLE LOCAL PLAYER MOVEMENT AND SEND TO SUPERBASE ---
+  if (!gameReady) return;
+  background(220);
   handleMovement();
-
-  // --- DRAW ALL OTHER PLAYERS ---
-  for (const id in otherPlayers) {
-    const other = otherPlayers[id];
-    if (other.avatar && avatarImages[other.avatar]) {
-      // Draw the other player's image
-      image(avatarImages[other.avatar], other.x, other.y, 64, 64);
-      // Draw their name below the image
-      fill(0); // Black text
-      text(other.name, other.x + 32, other.y + 80);
-    }
-  }
-
-  // --- DRAW THE LOCAL PLAYER ---
-  if (player.avatar && avatarImages[player.avatar]) {
-    image(avatarImages[player.avatar], player.x, player.y, 64, 64);
-    fill(0);
-    text(player.name, player.x + 32, player.y + 80);
-  }
+  drawPlayers();
 }
 
-
-// --- 5. GAME LOGIC AND EVENT LISTENERS ---
-
-// A function to initialize the game once the user joins
+// --- 4. GAME LOGIC AND EVENT LISTENERS ---
 function joinGame(name, avatar) {
   player = {
     x: Math.random() * 700,
@@ -72,26 +43,24 @@ function joinGame(name, avatar) {
     avatar: avatar
   };
 
-  // Hide the join screen and start the game
   document.getElementById('join-screen').style.display = 'none';
+  document.getElementById('main-container').style.display = 'flex';
   gameReady = true;
-  loop(); // Start the p5.js draw loop
+  loop();
 
-  // Start listening for other players
   subscribeToUpdates();
+  fetchInitialMessages(); // NEW: Fetch old messages
 }
 
-// A function to handle movement and send updates
 function handleMovement() {
   let hasMoved = false;
   if (keyIsDown(LEFT_ARROW)) { player.x -= player.speed; hasMoved = true; }
   if (keyIsDown(RIGHT_ARROW)) { player.x += player.speed; hasMoved = true; }
   if (keyIsDown(UP_ARROW)) { player.y -= player.speed; hasMoved = true; }
   if (keyIsDown(DOWN_ARROW)) { player.y += player.speed; hasMoved = true; }
-  
-  // NEW: Constrain the player's position to stay within the canvas boundaries
-  player.x = constrain(player.x, 0, width - 64); // width is a p5.js variable for canvas width
-  player.y = constrain(player.y, 0, height - 64); // height is a p5.js variable for canvas height
+
+  player.x = constrain(player.x, 0, width - 64);
+  player.y = constrain(player.y, 0, height - 64);
 
   if (hasMoved) {
     supabaseClient
@@ -108,49 +77,113 @@ function handleMovement() {
   }
 }
 
-// A function to subscribe to Supabase realtime updates
+function drawPlayers() {
+  for (const id in otherPlayers) {
+    const other = otherPlayers[id];
+    if (other.avatar && avatarImages[other.avatar]) {
+      image(avatarImages[other.avatar], other.x, other.y, 64, 64);
+      fill(0);
+      text(other.name, other.x + 32, other.y + 80);
+    }
+  }
+
+  if (player.avatar && avatarImages[player.avatar]) {
+    image(avatarImages[player.avatar], player.x, player.y, 64, 64);
+    fill(0);
+    text(player.name, player.x + 32, player.y + 80);
+  }
+}
+
 function subscribeToUpdates() {
+  // Presence channel
   supabaseClient
     .channel('Presences')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'Presences' },
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'Presences' },
       (payload) => {
         const updatedPresence = payload.new;
         if (updatedPresence.user_id === myId) return;
+        otherPlayers[updatedPresence.user_id] = updatedPresence;
+      }
+    )
+    .subscribe();
 
-        otherPlayers[updatedPresence.user_id] = {
-          x: updatedPresence.x_pos,
-          y: updatedPresence.y_pos,
-          name: updatedPresence.name,
-          avatar: updatedPresence.avatar
-        };
+  // NEW: Messages channel
+  supabaseClient
+    .channel('messages')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' },
+      (payload) => {
+        displayMessage(payload.new);
       }
     )
     .subscribe();
 }
 
-// --- Add event listeners for the join screen ---
+// --- 5. NEW CHAT FUNCTIONS ---
+async function fetchInitialMessages() {
+    const { data, error } = await supabaseClient
+        .from('messages')
+        .select('*')
+        .order('created_at', { ascending: true })
+        .limit(50);
+
+    if (error) {
+        console.error('Error fetching messages:', error);
+    } else {
+        data.forEach(displayMessage);
+    }
+}
+
+function displayMessage(message) {
+    const chatHistory = document.getElementById('chat-history');
+    const msgElement = document.createElement('p');
+    msgElement.innerHTML = `<strong>${message.name}:</strong> ${message.message}`;
+    chatHistory.appendChild(msgElement);
+    chatHistory.scrollTop = chatHistory.scrollHeight; // Auto-scroll
+}
+
+async function sendMessage(messageText) {
+    if (!messageText.trim()) return; // Don't send empty messages
+
+    const { error } = await supabaseClient
+        .from('messages')
+        .insert({ name: player.name, message: messageText });
+
+    if (error) {
+        console.error('Error sending message:', error);
+    }
+}
+
+// --- 6. EVENT LISTENERS ---
 window.addEventListener('DOMContentLoaded', () => {
-    const joinButton = document.getElementById('join-button');
-    const nameInput = document.getElementById('name-input');
-    const avatars = document.querySelectorAll('#avatar-selection img');
-    let selectedAvatar = 'avatar1'; // Default selection
+  // Join screen logic
+  const joinButton = document.getElementById('join-button');
+  const nameInput = document.getElementById('name-input');
+  const avatars = document.querySelectorAll('#avatar-selection img');
+  let selectedAvatar = 'avatar1';
 
-    avatars.forEach(img => {
-        img.addEventListener('click', () => {
-            avatars.forEach(a => a.classList.remove('selected'));
-            img.classList.add('selected');
-            selectedAvatar = img.dataset.avatar;
-        });
+  avatars.forEach(img => {
+    img.addEventListener('click', () => {
+      avatars.forEach(a => a.classList.remove('selected'));
+      img.classList.add('selected');
+      selectedAvatar = img.dataset.avatar;
     });
+  });
 
-    joinButton.addEventListener('click', () => {
-        const name = nameInput.value.trim();
-        if (name) {
-            joinGame(name, selectedAvatar);
-        } else {
-            alert('Please enter your name.');
-        }
-    });
+  joinButton.addEventListener('click', () => {
+    const name = nameInput.value.trim();
+    if (name) {
+      joinGame(name, selectedAvatar);
+    } else {
+      alert('Please enter your name.');
+    }
+  });
+
+  // NEW: Chat input logic
+  const chatInput = document.getElementById('chat-input');
+  chatInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      sendMessage(chatInput.value);
+      chatInput.value = '';
+    }
+  });
 });
