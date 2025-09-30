@@ -31,12 +31,12 @@ function setup() {
   console.log('p5.js setup complete. Canvas created.');
 
   // --- SUBSCRIBE TO REALTIME UPDATES ---
-  // Listen for changes in the 'presences' table
+  // Listen for changes in the 'Presences' table
   supabaseClient
-    .channel('presences')
+    .channel('Presences')
     .on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'presences' },
+      { event: '*', schema: 'public', table: 'Presences' },
       (payload) => {
         // We received an update from the database!
         const updatedPresence = payload.new;
@@ -87,7 +87,7 @@ function draw() {
   // Only send an update if the player has actually moved
   if (hasMoved) {
     supabaseClient
-      .from('presences')
+      .from('Presences')
       .upsert({
         user_id: myId,
         x_pos: player.x,
