@@ -3,15 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Virtual Office</title>
+    <title>Virtual Office</title>
     <style>
-        /* Basic styling to center the canvas */
-        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f0f0; }
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #333; }
+        canvas { display: block; }
+        #join-screen {
+            position: absolute;
+            background-color: white;
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            font-family: sans-serif;
+        }
+        #join-screen input { font-size: 1.2em; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px; }
+        #avatar-selection img { width: 64px; height: 64px; margin: 10px; cursor: pointer; border: 3px solid transparent; border-radius: 50%; }
+        #avatar-selection img.selected { border-color: #007bff; }
+        #join-button { font-size: 1.2em; padding: 10px 20px; border: none; background-color: #007bff; color: white; border-radius: 5px; cursor: pointer; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+    <div id="join-screen">
+        <h2>Join the Office</h2>
+        <input type="text" id="name-input" placeholder="Enter your name" maxlength="15">
+        <div id="avatar-selection">
+            <p>Choose your avatar:</p>
+            <img src="avatar1.png" data-avatar="avatar1" class="selected">
+            <img src="avatar2.png" data-avatar="avatar2">
+            <img src="avatar3.png" data-avatar="avatar3">
+        </div>
+        <button id="join-button">Join</button>
+    </div>
     <script src="app.js"></script>
 </body>
 </html>
