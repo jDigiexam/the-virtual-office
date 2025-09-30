@@ -5,15 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Virtual Office</title>
     <style>
-        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #333; }
-        canvas { display: block; }
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #333; font-family: sans-serif; }
+        #main-container { display: flex; border: 1px solid #ccc; }
+        #chat-container { width: 300px; background-color: #f9f9f9; display: flex; flex-direction: column; }
+        #chat-history { flex-grow: 1; padding: 10px; overflow-y: auto; border-bottom: 1px solid #ddd; }
+        #chat-history p { margin: 0 0 10px 0; word-wrap: break-word; }
+        #chat-input { border: none; padding: 15px; font-size: 1em; }
         #join-screen {
-            position: absolute;
-            background-color: white;
-            padding: 40px;
-            border-radius: 10px;
-            text-align: center;
-            font-family: sans-serif;
+            position: absolute; background-color: white; padding: 40px; border-radius: 10px; text-align: center; z-index: 10;
         }
         #join-screen input { font-size: 1.2em; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px; }
         #avatar-selection img { width: 64px; height: 64px; margin: 10px; cursor: pointer; border: 3px solid transparent; border-radius: 50%; }
@@ -35,6 +34,14 @@
         </div>
         <button id="join-button">Join</button>
     </div>
+
+    <div id="main-container" style="display: none;">
+        <div id="chat-container">
+            <div id="chat-history"></div>
+            <input type="text" id="chat-input" placeholder="Type a message...">
+        </div>
+    </div>
+    
     <script src="app.js"></script>
 </body>
 </html>
