@@ -88,12 +88,12 @@ function draw() {
   if (hasMoved) {
     supabaseClient
       .from('Presences')
-      .upsert({
-        user_id: myId,
-        x_pos: player.x,
-        y_pos: player.y,
-        last_seen: new Date().toISOString()
-      })
+        .upsert({
+          user_id: myId,
+          x_pos: Math.round(player.x), // Round the x value
+          y_pos: Math.round(player.y), // Round the y value
+          last_seen: new Date().toISOString()
+          })
       .then(response => {
         if (response.error) {
           console.error(response.error);
