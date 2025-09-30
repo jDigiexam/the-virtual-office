@@ -20,7 +20,7 @@ function preload() {
 
 function setup() {
   const canvas = createCanvas(800, 600);
-  canvas.parent('main-container'); // Attach canvas to our main container
+  canvas.parent('main-container');
   noLoop();
   textAlign(CENTER);
   textSize(14);
@@ -49,7 +49,7 @@ function joinGame(name, avatar) {
   loop();
 
   subscribeToUpdates();
-  fetchInitialMessages(); // NEW: Fetch old messages
+  fetchInitialMessages();
 }
 
 function handleMovement() {
@@ -78,6 +78,7 @@ function handleMovement() {
 }
 
 function drawPlayers() {
+  // Draw other players
   for (const id in otherPlayers) {
     const other = otherPlayers[id];
     if (other.avatar && avatarImages[other.avatar]) {
@@ -87,6 +88,7 @@ function drawPlayers() {
     }
   }
 
+  // Draw local player
   if (player.avatar && avatarImages[player.avatar]) {
     image(avatarImages[player.avatar], player.x, player.y, 64, 64);
     fill(0);
@@ -102,12 +104,19 @@ function subscribeToUpdates() {
       (payload) => {
         const updatedPresence = payload.new;
         if (updatedPresence.user_id === myId) return;
-        otherPlayers[updatedPresence.user_id] = updatedPresence;
+        
+        // THIS IS THE FIX: We map the database columns (x_pos) to the keys our drawing function uses (x).
+        otherPlayers[updatedPresence.user_id] = {
+            x: updatedPresence.x_pos,
+            y: updatedPresence.y_pos,
+            name: updatedPresence.name,
+            avatar: updatedPresence.avatar
+        };
       }
     )
     .subscribe();
 
-  // NEW: Messages channel
+  // Messages channel
   supabaseClient
     .channel('messages')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' },
@@ -118,7 +127,7 @@ function subscribeToUpdates() {
     .subscribe();
 }
 
-// --- 5. NEW CHAT FUNCTIONS ---
+// --- 5. CHAT FUNCTIONS ---
 async function fetchInitialMessages() {
     const { data, error } = await supabaseClient
         .from('messages')
@@ -138,11 +147,11 @@ function displayMessage(message) {
     const msgElement = document.createElement('p');
     msgElement.innerHTML = `<strong>${message.name}:</strong> ${message.message}`;
     chatHistory.appendChild(msgElement);
-    chatHistory.scrollTop = chatHistory.scrollHeight; // Auto-scroll
+    chatHistory.scrollTop = chatHistory.scrollHeight;
 }
 
 async function sendMessage(messageText) {
-    if (!messageText.trim()) return; // Don't send empty messages
+    if (!messageText.trim()) return;
 
     const { error } = await supabaseClient
         .from('messages')
@@ -178,7 +187,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // NEW: Chat input logic
+  // Chat input logic
   const chatInput = document.getElementById('chat-input');
   chatInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
