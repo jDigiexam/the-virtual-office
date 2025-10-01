@@ -153,3 +153,5 @@ window.addEventListener('DOMContentLoaded', () => {
   joinButton.addEventListener('click', () => { const name = nameInput.value.trim(); if (name) joinGame(name, selectedAvatar); else alert('Please enter your name.'); });
   const chatInput = document.getElementById('chat-input');
   chatInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') { sendMessage(chatInput.value); chatInput.value = ''; } });
+});
+  
