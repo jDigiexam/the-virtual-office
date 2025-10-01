@@ -50,12 +50,13 @@ const walls = [
   { x: 1500, y: 710, w: 10, h: 390 }, // Outer right wall
 ];
 
-// Updated spawn points for the new layout
+// Replace your old spawnPoints array with this one.
 const spawnPoints = [
-  { x: 450, y: 550 }, // Lobby area
-  { x: 750, y: 450 }, // Central corridor
-  { x: 1100, y: 750 },// Bottom right area
-  { x: 450, y: 750 }  // Bottom left room
+  { x: 200, y: 600 },   // Left side of central corridor
+  { x: 800, y: 600 },   // Middle of central corridor
+  { x: 1400, y: 600 },  // Right side of central corridor
+  { x: 300, y: 300 },   // Inside the top-left room
+  { x: 950, y: 900 },   // Inside the bottom-right room
 ];
 
 // --- 3. p5.js PRELOAD, SETUP, AND DRAW ---
