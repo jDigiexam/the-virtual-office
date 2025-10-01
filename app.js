@@ -39,9 +39,19 @@ function preload() {
         });
     }
 }
-
+// MODIFIED: setup() now creates a responsive canvas
 function setup() {
-    const canvas = createCanvas(800, 600);
+    let canvasWidth = 800;
+    let canvasHeight = 600;
+
+    // If the screen is mobile-sized, adjust the canvas dimensions
+    if (window.innerWidth <= 768) {
+        canvasWidth = window.innerWidth;
+        // Set canvas height to 60% of the viewport height
+        canvasHeight = window.innerHeight * 0.6;
+    }
+
+    const canvas = createCanvas(canvasWidth, canvasHeight);
     canvas.parent('main-container');
     noLoop();
     textAlign(CENTER);
