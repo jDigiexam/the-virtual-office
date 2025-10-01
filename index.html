@@ -18,6 +18,43 @@
         #avatar-selection img { width: 64px; height: 64px; margin: 10px; cursor: pointer; border: 3px solid transparent; border-radius: 50%; }
         #avatar-selection img.selected { border-color: #007bff; }
         #join-button { font-size: 1.2em; padding: 10px 20px; border: none; background-color: #007bff; color: white; border-radius: 5px; cursor: pointer; }
+        
+        /* NEW: D-pad styles */
+        #dpad-container {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            width: 150px;
+            height: 150px;
+            display: none; /* Hidden by default */
+        }
+        .dpad-button {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: rgba(0, 0, 0, 0.4);
+            color: white;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            user-select: none; /* Prevent text selection */
+        }
+        .dpad-button:active {
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+        #dpad-up { top: 0; left: 50px; }
+        #dpad-down { bottom: 0; left: 50px; }
+        #dpad-left { top: 50px; left: 0; }
+        #dpad-right { top: 50px; right: 0; }
+
+        /* Media Query: Only show the D-pad on screens smaller than 768px */
+        @media (max-width: 768px) {
+            #dpad-container {
+                display: block;
+            }
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
