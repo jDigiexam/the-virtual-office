@@ -7,55 +7,50 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const myId = crypto.randomUUID();
 const otherPlayers = {};
 let player = {};
-let avatarImages = { avatar1: {}, avatar2: {}, avatar3: {} }; // NEW: Nested object for directional sprites
+let avatarImages = { avatar1: {}, avatar2: {}, avatar3: {} };
 let gameReady = false;
 
-// --- 3. p5.js PRELOAD, SETUP, AND DRAW ---
-function preload() {
-    // NEW: Load all directional sprites for each avatar
-    const directions = ['down', 'up', 'left', 'right', 'down_left', 'down_right', 'up_left', 'up_right'];
-    for (let i = 1; i <= 3; i++) {
-        directions.forEach(dir => {
-            const path = `avatar${i}_${dir}.png`;
-            avatarImages[`avatar${i}`][dir] = loadImage(path);
-        });
-    }
-}
+// NEW: An array to define our office layout
+const walls = [
+  { x: 200, y: 0,   w: 20, h: 250 },
+  { x: 200, y: 350, w: 20, h: 250 },
+  { x: 450, y: 150, w: 350, h: 20 }
+];
 
-function setup() {
-    const canvas = createCanvas(800, 600);
-    canvas.parent('main-container');
-    noLoop();
-    textAlign(CENTER);
-    textSize(14);
-}
+// --- 3. p5.js PRELOAD, SETUP, AND DRAW ---
+function preload() { /* ... unchanged ... */ }
+function setup() { /* ... unchanged ... */ }
 
 function draw() {
     if (!gameReady) return;
     background(220);
+
+    // NEW: Draw the walls before anything else
+    fill(100); // Dark grey for walls
+    noStroke();
+    walls.forEach(wall => {
+        rect(wall.x, wall.y, wall.w, wall.h);
+    });
+
     handleMovement();
     drawPlayers();
 }
 
+
 // --- 4. GAME LOGIC AND EVENT LISTENERS ---
-function joinGame(name, avatar) {
-    player = {
-        x: Math.random() * 700,
-        y: Math.random() * 500,
-        speed: 3,
-        name: name,
-        avatar: avatar,
-        direction: 'down' // NEW: Add a direction property, default to 'down'
-    };
-    document.getElementById('join-screen').style.display = 'none';
-    document.getElementById('main-container').style.display = 'flex';
-    gameReady = true;
-    loop();
-    subscribeToUpdates();
-    fetchInitialMessages();
+function joinGame(name, avatar) { /* ... unchanged ... */ }
+
+// NEW HELPER: A function to check for rectangle collision
+function checkCollision(rect1, rect2) {
+    return (
+        rect1.x < rect2.x + rect2.w &&
+        rect1.x + rect1.w > rect2.x &&
+        rect1.y < rect2.y + rect2.h &&
+        rect1.y + rect1.h > rect2.y
+    );
 }
 
-// NEW: Rewritten movement function to handle directions
+// NEW: Rewritten movement function to handle wall collisions
 function handleMovement() {
     let dx = 0;
     let dy = 0;
@@ -65,11 +60,43 @@ function handleMovement() {
     if (keyIsDown(UP_ARROW)) dy -= 1;
     if (keyIsDown(DOWN_ARROW)) dy += 1;
 
-    // Update player position
-    player.x += dx * player.speed;
-    player.y += dy * player.speed;
+    if (dx === 0 && dy === 0) {
+        // Not moving, no need to send updates
+        return;
+    }
 
-    // Determine direction string
+    // --- Collision Detection Logic ---
+    const playerRect = { x: player.x, y: player.y, w: 64, h: 64 };
+
+    // Check X-axis movement
+    let nextXRect = { ...playerRect, x: player.x + dx * player.speed };
+    let canMoveX = true;
+    for (const wall of walls) {
+        if (checkCollision(nextXRect, wall)) {
+            canMoveX = false;
+            break;
+        }
+    }
+    if (canMoveX) {
+        player.x += dx * player.speed;
+    }
+
+    // Check Y-axis movement
+    let nextYRect = { ...playerRect, y: player.y + dy * player.speed };
+    let canMoveY = true;
+    for (const wall of walls) {
+        if (checkCollision(nextYRect, wall)) {
+            canMoveY = false;
+
+            break;
+        }
+    }
+    if (canMoveY) {
+        player.y += dy * player.speed;
+    }
+    
+    // Determine direction string (this logic is now separate from position updates)
+    // (This section is the same as the previous version)
     let newDirection = player.direction;
     if (dy === -1) newDirection = 'up';
     if (dy === 1) newDirection = 'down';
@@ -79,36 +106,63 @@ function handleMovement() {
     if (dy === -1 && dx === 1) newDirection = 'up_right';
     if (dy === 1 && dx === -1) newDirection = 'down_left';
     if (dy === 1 && dx === 1) newDirection = 'down_right';
-    
     player.direction = newDirection;
     
-    // Constrain player to canvas
+    // Constrain to canvas edges (still useful as a backup)
     player.x = constrain(player.x, 0, width - 64);
     player.y = constrain(player.y, 0, height - 64);
 
-    // Send update to Supabase if moving
-    if (dx !== 0 || dy !== 0) {
-        supabaseClient
-            .from('Presences')
-            .upsert({
-                user_id: myId,
-                x_pos: Math.round(player.x),
-                y_pos: Math.round(player.y),
-                name: player.name,
-                avatar: player.avatar,
-                direction: player.direction, // NEW: Send direction
-                last_seen: new Date().toISOString()
-            })
-            .then(response => { if (response.error) console.error(response.error); });
-    }
+    // Send update to Supabase
+    supabaseClient
+        .from('Presences')
+        .upsert({
+            user_id: myId,
+            x_pos: Math.round(player.x),
+            y_pos: Math.round(player.y),
+            name: player.name,
+            avatar: player.avatar,
+            direction: player.direction,
+            last_seen: new Date().toISOString()
+        })
+        .then(response => { if (response.error) console.error(response.error); });
 }
 
-// NEW: Rewritten draw function to use directional sprites
+function drawPlayers() { /* ... unchanged ... */ }
+function subscribeToUpdates() { /* ... unchanged ... */ }
+async function fetchInitialMessages() { /* ... unchanged ... */ }
+function displayMessage(message) { /* ... unchanged ... */ }
+async function sendMessage(messageText) { /* ... unchanged ... */ }
+window.addEventListener('DOMContentLoaded', () => { /* ... unchanged ... */ });
+
+// --- (You can copy the unchanged functions from your previous file to fill this in) ---
+function preload() {
+    const directions = ['down', 'up', 'left', 'right', 'down_left', 'down_right', 'up_left', 'up_right'];
+    for (let i = 1; i <= 3; i++) {
+        directions.forEach(dir => {
+            const path = `avatar${i}_${dir}.png`;
+            avatarImages[`avatar${i}`][dir] = loadImage(path);
+        });
+    }
+}
+function setup() {
+    const canvas = createCanvas(800, 600);
+    canvas.parent('main-container');
+    noLoop();
+    textAlign(CENTER);
+    textSize(14);
+}
+function joinGame(name, avatar) {
+    player = { x: Math.random() * 700, y: Math.random() * 500, speed: 3, name: name, avatar: avatar, direction: 'down' };
+    document.getElementById('join-screen').style.display = 'none';
+    document.getElementById('main-container').style.display = 'flex';
+    gameReady = true;
+    loop();
+    subscribeToUpdates();
+    fetchInitialMessages();
+}
 function drawPlayers() {
-    // Draw other players
     for (const id in otherPlayers) {
         const other = otherPlayers[id];
-        // Use the correct directional sprite, fallback to 'down' if needed
         const sprite = avatarImages[other.avatar] ? (avatarImages[other.avatar][other.direction] || avatarImages[other.avatar]['down']) : null;
         if (sprite) {
             image(sprite, other.x, other.y, 64, 64);
@@ -116,8 +170,6 @@ function drawPlayers() {
             text(other.name, other.x + 32, other.y + 80);
         }
     }
-
-    // Draw local player
     const mySprite = avatarImages[player.avatar] ? (avatarImages[player.avatar][player.direction] || avatarImages[player.avatar]['down']) : null;
     if (mySprite) {
         image(mySprite, player.x, player.y, 64, 64);
@@ -125,28 +177,23 @@ function drawPlayers() {
         text(player.name, player.x + 32, player.y + 80);
     }
 }
-
 function subscribeToUpdates() {
-    // Presence channel (now includes direction)
     supabaseClient
         .channel('Presences')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'Presences' },
             (payload) => {
                 const updatedPresence = payload.new;
                 if (updatedPresence.user_id === myId) return;
-                
                 otherPlayers[updatedPresence.user_id] = {
                     x: updatedPresence.x_pos,
                     y: updatedPresence.y_pos,
                     name: updatedPresence.name,
                     avatar: updatedPresence.avatar,
-                    direction: updatedPresence.direction // NEW: Receive direction
+                    direction: updatedPresence.direction
                 };
             }
         )
         .subscribe();
-
-    // Messages channel
     supabaseClient
         .channel('messages')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' },
@@ -154,14 +201,6 @@ function subscribeToUpdates() {
         )
         .subscribe();
 }
-
-// --- (Rest of the file is the same: chat functions, event listeners) ---
-async function fetchInitialMessages() { /* ... unchanged ... */ }
-function displayMessage(message) { /* ... unchanged ... */ }
-async function sendMessage(messageText) { /* ... unchanged ... */ }
-window.addEventListener('DOMContentLoaded', () => { /* ... unchanged ... */ });
-
-// (You can copy the unchanged functions from your previous file)
 async function fetchInitialMessages() {
     const { data, error } = await supabaseClient.from('messages').select('*').order('created_at', { ascending: true }).limit(50);
     if (error) console.error('Error fetching messages:', error);
