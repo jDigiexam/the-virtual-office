@@ -10,37 +10,40 @@ let player = {};
 let avatarImages = { avatar1: {}, avatar2: {}, avatar3: {} };
 let gameReady = false;
 
-// NEW: An array to define our office layout
+// NEW: An array to define a more complex office layout with thinner walls.
 const walls = [
-  { x: 200, y: 0,   w: 20, h: 250 },
-  { x: 200, y: 350, w: 20, h: 250 },
-  { x: 450, y: 150, w: 350, h: 20 }
+  // Top-left office
+  { x: 0, y: 150, w: 250, h: 10 },
+  { x: 250, y: 0, w: 10, h: 150 },
+
+  // Top-right office
+  { x: 540, y: 0, w: 10, h: 150 },
+  { x: 540, y: 150, w: 260, h: 10 },
+  
+  // Large bottom meeting room (with a wide central door)
+  { x: 0, y: 440, w: 350, h: 10 },
+  { x: 450, y: 440, w: 350, h: 10 },
+
+  // Right-side vertical divider
+  { x: 600, y: 160, w: 10, h: 280 }
 ];
 
 // --- 3. p5.js PRELOAD, SETUP, AND DRAW ---
 function preload() { /* ... unchanged ... */ }
 function setup() { /* ... unchanged ... */ }
-
 function draw() {
     if (!gameReady) return;
     background(220);
-
-    // NEW: Draw the walls before anything else
-    fill(100); // Dark grey for walls
+    fill(100);
     noStroke();
-    walls.forEach(wall => {
-        rect(wall.x, wall.y, wall.w, wall.h);
-    });
-
+    walls.forEach(wall => { rect(wall.x, wall.y, wall.w, wall.h); });
     handleMovement();
     drawPlayers();
 }
 
-
 // --- 4. GAME LOGIC AND EVENT LISTENERS ---
 function joinGame(name, avatar) { /* ... unchanged ... */ }
 
-// NEW HELPER: A function to check for rectangle collision
 function checkCollision(rect1, rect2) {
     return (
         rect1.x < rect2.x + rect2.w &&
@@ -50,8 +53,17 @@ function checkCollision(rect1, rect2) {
     );
 }
 
-// NEW: Rewritten movement function to handle wall collisions
+// REWRITTEN: The handleMovement function now uses a smaller hitbox for more precise collisions.
 function handleMovement() {
+    // --- NEW: Define hitbox dimensions and offsets ---
+    // You can tweak these values to perfectly fit your sprites!
+    const SPRITE_W = 64;
+    const SPRITE_H = 64;
+    const HITBOX_W = 32; // Make the hitbox narrower than the sprite
+    const HITBOX_H = 48; // Make the hitbox shorter, focused on the lower body
+    const X_OFFSET = (SPRITE_W - HITBOX_W) / 2; // Center the hitbox horizontally ( (64-32)/2 = 16 )
+    const Y_OFFSET = SPRITE_H - HITBOX_H;      // Place the hitbox at the bottom of the sprite ( 64-48 = 16 )
+
     let dx = 0;
     let dy = 0;
 
@@ -61,18 +73,22 @@ function handleMovement() {
     if (keyIsDown(DOWN_ARROW)) dy += 1;
 
     if (dx === 0 && dy === 0) {
-        // Not moving, no need to send updates
-        return;
+        return; // Not moving
     }
 
-    // --- Collision Detection Logic ---
-    const playerRect = { x: player.x, y: player.y, w: 64, h: 64 };
+    // --- Collision Detection Logic using the hitbox ---
+    const playerHitbox = {
+        x: player.x + X_OFFSET,
+        y: player.y + Y_OFFSET,
+        w: HITBOX_W,
+        h: HITBOX_H
+    };
 
     // Check X-axis movement
-    let nextXRect = { ...playerRect, x: player.x + dx * player.speed };
+    let nextXHitbox = { ...playerHitbox, x: playerHitbox.x + dx * player.speed };
     let canMoveX = true;
     for (const wall of walls) {
-        if (checkCollision(nextXRect, wall)) {
+        if (checkCollision(nextXHitbox, wall)) {
             canMoveX = false;
             break;
         }
@@ -82,12 +98,13 @@ function handleMovement() {
     }
 
     // Check Y-axis movement
-    let nextYRect = { ...playerRect, y: player.y + dy * player.speed };
+    // Update hitbox position before checking Y, in case X changed
+    playerHitbox.x = player.x + X_OFFSET; 
+    let nextYHitbox = { ...playerHitbox, y: playerHitbox.y + dy * player.speed };
     let canMoveY = true;
     for (const wall of walls) {
-        if (checkCollision(nextYRect, wall)) {
+        if (checkCollision(nextYHitbox, wall)) {
             canMoveY = false;
-
             break;
         }
     }
@@ -95,8 +112,7 @@ function handleMovement() {
         player.y += dy * player.speed;
     }
     
-    // Determine direction string (this logic is now separate from position updates)
-    // (This section is the same as the previous version)
+    // Determine direction string
     let newDirection = player.direction;
     if (dy === -1) newDirection = 'up';
     if (dy === 1) newDirection = 'down';
@@ -108,9 +124,9 @@ function handleMovement() {
     if (dy === 1 && dx === 1) newDirection = 'down_right';
     player.direction = newDirection;
     
-    // Constrain to canvas edges (still useful as a backup)
-    player.x = constrain(player.x, 0, width - 64);
-    player.y = constrain(player.y, 0, height - 64);
+    // Constrain to canvas edges
+    player.x = constrain(player.x, 0, width - SPRITE_W);
+    player.y = constrain(player.y, 0, height - SPRITE_H);
 
     // Send update to Supabase
     supabaseClient
