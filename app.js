@@ -10,22 +10,22 @@ let player = {};
 let avatarImages = { avatar1: {}, avatar2: {}, avatar3: {} };
 let gameReady = false;
 
-// NEW: An array to define a more complex office layout with thinner walls.
+// NEW: A layout with a central hall and four rooms with clear doors.
 const walls = [
-  // Top-left office
-  { x: 0, y: 150, w: 250, h: 10 },
-  { x: 250, y: 0, w: 10, h: 150 },
-
-  // Top-right office
-  { x: 540, y: 0, w: 10, h: 150 },
-  { x: 540, y: 150, w: 260, h: 10 },
+  // Central Hallway Walls
+  // Left wall of hallway (with 2 doors)
+  { x: 300, y: 0,   w: 10, h: 120 },
+  { x: 300, y: 220, w: 10, h: 180 },
+  { x: 300, y: 500, w: 10, h: 100 },
   
-  // Large bottom meeting room (with a wide central door)
-  { x: 0, y: 440, w: 350, h: 10 },
-  { x: 450, y: 440, w: 350, h: 10 },
+  // Right wall of hallway (with 2 doors)
+  { x: 490, y: 0,   w: 10, h: 120 },
+  { x: 490, y: 220, w: 10, h: 180 },
+  { x: 490, y: 500, w: 10, h: 100 },
 
-  // Right-side vertical divider
-  { x: 600, y: 160, w: 10, h: 280 }
+  // Horizontal room dividers
+  { x: 0,   y: 300, w: 310, h: 10 }, // Left side divider
+  { x: 500, y: 300, w: 300, h: 10 }, // Right side divider
 ];
 
 // --- 3. p5.js PRELOAD, SETUP, AND DRAW ---
@@ -33,7 +33,7 @@ function preload() { /* ... unchanged ... */ }
 function setup() { /* ... unchanged ... */ }
 function draw() {
     if (!gameReady) return;
-    background(220);
+    background('#d1e8f9'); // A nice light blue
     fill(100);
     noStroke();
     walls.forEach(wall => { rect(wall.x, wall.y, wall.w, wall.h); });
