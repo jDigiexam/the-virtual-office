@@ -16,25 +16,38 @@ let wasMoving = false;
 const worldWidth = 1600;
 const worldHeight = 1200;
 
-// A larger wall layout for the bigger world.
+// A new layout where all rooms are interconnected with doorways.
 const walls = [
-  // Outer boundary walls
+  // Outer Boundary
   { x: 0, y: 0, w: worldWidth, h: 10 },
   { x: 0, y: worldHeight - 10, w: worldWidth, h: 10 },
   { x: 0, y: 0, w: 10, h: worldHeight },
   { x: worldWidth - 10, y: 0, w: 10, h: worldHeight },
 
-  // Main central building
-  { x: 300, y: 300, w: 1000, h: 10 }, // Top wall
-  { x: 300, y: 900, w: 1000, h: 10 }, // Bottom wall
-  { x: 300, y: 300, w: 10, h: 200 }, // Top-left vertical
-  { x: 300, y: 600, w: 10, h: 300 }, // Bottom-left vertical (doorway at 500)
-  { x: 1290, y: 300, w: 10, h: 600 }, // Right vertical
+  // --- Central Corridor ---
+  // Top wall of the corridor, with doorways for the top rooms
+  { x: 100, y: 500, w: 150, h: 10 }, // Left of door 1
+  { x: 350, y: 500, w: 300, h: 10 }, // Between door 1 and 2
+  { x: 750, y: 500, w: 400, h: 10 }, // Between door 2 and 3
+  { x: 1250, y: 500, w: 250, h: 10 },// Right of door 3
+  
+  // Bottom wall of the corridor, with doorways for the bottom rooms
+  { x: 100, y: 700, w: 150, h: 10 }, // Left of door 4
+  { x: 350, y: 700, w: 800, h: 10 }, // Between door 4 and 5
+  { x: 1250, y: 700, w: 250, h: 10 },// Right of door 5
 
-  // Internal office dividers
-  { x: 600, y: 310, w: 10, h: 300 }, // First internal vertical
-  { x: 950, y: 600, w: 10, h: 300 }, // Second internal vertical
-  { x: 600, y: 600, w: 360, h: 10 }  // Central horizontal
+  // --- Top Row of Rooms ---
+  { x: 100, y: 100, w: 1400, h: 10 }, // Outer top wall
+  { x: 500, y: 100, w: 10, h: 400 },  // Divider 1
+  { x: 1100, y: 100, w: 10, h: 400 }, // Divider 2
+  { x: 100, y: 100, w: 10, h: 400 },  // Outer left wall
+  { x: 1500, y: 100, w: 10, h: 410 }, // Outer right wall
+
+  // --- Bottom Row of Rooms ---
+  { x: 100, y: 1100, w: 1400, h: 10 },// Outer bottom wall
+  { x: 800, y: 700, w: 10, h: 400 },  // Divider between bottom rooms
+  { x: 100, y: 710, w: 10, h: 390 },  // Outer left wall
+  { x: 1500, y: 710, w: 10, h: 390 }, // Outer right wall
 ];
 
 // Updated spawn points for the new layout
