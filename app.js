@@ -10,6 +10,9 @@ let player = {};
 let avatarImages = { avatar1: {}, avatar2: {}, avatar3: {} };
 let gameReady = false;
 
+// NEW: An object to track the state of on-screen controls
+let touchControls = { up: false, down: false, left: false, right: false };
+
 const walls = [
   // Central Hallway Walls
   { x: 300, y: 0,   w: 10, h: 120 }, { x: 300, y: 220, w: 10, h: 180 }, { x: 300, y: 500, w: 10, h: 100 },
@@ -87,6 +90,13 @@ function checkCollision(rect1, rect2) {
 function handleMovement() {
     const SPRITE_W = 64; const SPRITE_H = 64; const HITBOX_W = 32; const HITBOX_H = 48; const X_OFFSET = (SPRITE_W - HITBOX_W) / 2; const Y_OFFSET = SPRITE_H - HITBOX_H;
     let dx = 0; let dy = 0;
+ 
+  // MODIFIED: Check for keyboard OR touch controls
+    if (keyIsDown(LEFT_ARROW) || touchControls.left) dx -= 1;
+    if (keyIsDown(RIGHT_ARROW) || touchControls.right) dx += 1;
+    if (keyIsDown(UP_ARROW) || touchControls.up) dy -= 1;
+    if (keyIsDown(DOWN_ARROW) || touchControls.down) dy += 1;
+  
     if (keyIsDown(LEFT_ARROW)) dx -= 1; if (keyIsDown(RIGHT_ARROW)) dx += 1; if (keyIsDown(UP_ARROW)) dy -= 1; if (keyIsDown(DOWN_ARROW)) dy += 1;
     if (dx === 0 && dy === 0) return;
     const playerHitbox = { x: player.x + X_OFFSET, y: player.y + Y_OFFSET, w: HITBOX_W, h: HITBOX_H };
@@ -153,5 +163,27 @@ window.addEventListener('DOMContentLoaded', () => {
   joinButton.addEventListener('click', () => { const name = nameInput.value.trim(); if (name) joinGame(name, selectedAvatar); else alert('Please enter your name.'); });
   const chatInput = document.getElementById('chat-input');
   chatInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') { sendMessage(chatInput.value); chatInput.value = ''; } });
+  
+  // NEW: Add event listeners for the on-screen D-pad
+    const dpadUp = document.getElementById('dpad-up');
+    const dpadDown = document.getElementById('dpad-down');
+    const dpadLeft = document.getElementById('dpad-left');
+    const dpadRight = document.getElementById('dpad-right');
+
+    const handleTouchEvent = (button, direction, isActive) => {
+        touchControls[direction] = isActive;
+        // Also prevent default browser actions like scrolling
+        button.addEventListener('touchstart', (e) => { e.preventDefault(); touchControls[direction] = true; }, { passive: false });
+        button.addEventListener('touchend', (e) => { e.preventDefault(); touchControls[direction] = false; });
+        // Add mouse events for easier testing on desktop
+        button.addEventListener('mousedown', (e) => { e.preventDefault(); touchControls[direction] = true; });
+        button.addEventListener('mouseup', (e) => { e.preventDefault(); touchControls[direction] = false; });
+        button.addEventListener('mouseleave', (e) => { e.preventDefault(); touchControls[direction] = false; });
+    };
+
+    handleTouchEvent(dpadUp, 'up');
+    handleTouchEvent(dpadDown, 'down');
+    handleTouchEvent(dpadLeft, 'left');
+    handleTouchEvent(dpadRight, 'right');
 });
   
