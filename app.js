@@ -3,17 +3,6 @@ const SUPABASE_URL = 'https://cfuzvmmlvajbhilmegvc.supabase.co'; // URL from sup
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmdXp2bW1sdmFqYmhpbG1lZ3ZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyMDYzOTcsImV4cCI6MjA3NDc4MjM5N30.3J2oz6sOPo4eei7KspSk5mB-rIWTu1aL3HaBG57CbnQ'; // Anon Key
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-Of course. Here is the complete app.js file with all the features we've built, including the new scrolling camera, the larger office map, and all the previous logic for sprites, walls, chat, and mobile controls.
-
-Just replace your entire app.js file with this code.
-
-JavaScript
-
-// --- 1. CONNECT TO SUPERBASE ---
-const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // Replace with your URL
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // Replace with your Anon Key
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 // --- 2. GLOBAL VARIABLES ---
 const myId = crypto.randomUUID();
 const otherPlayers = {};
