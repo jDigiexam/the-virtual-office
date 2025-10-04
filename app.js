@@ -414,7 +414,32 @@ window.addEventListener('DOMContentLoaded', () => {
     };
     handleTouchEvent('dpad-up', 'up'); handleTouchEvent('dpad-down', 'down'); handleTouchEvent('dpad-left', 'left'); handleTouchEvent('dpad-right', 'right');
     
-    const vidToggle = document.getElementById('video-toggle'), micToggle = document.getElementById('mic-toggle');
-    if (vidToggle) vidToggle.addEventListener('click', () => { if (localStream) { const track = localStream.getVideoTracks()[0]; if (track) { track.enabled = !track.enabled; vidToggle.innerText = track.enabled ? 'Cam On' : 'Cam Off'; vidToggle.style.backgroundColor = track.enabled ? '#4CAF50' : '#f44336'; } } });
-    if (micToggle) micToggle.addEventListener('click', () => { if (localStream) { const track = localStream.getAudioTracks()[0]; if (track) { track.enabled = !track.enabled; micToggle.innerText = track.enabled ? 'Mic On' : 'Mic Off'; micToggle.style.backgroundColor = track.enabled ? '#4CAF50' : '#f44336'; } } });
+    const vidToggle = document.getElementById('video-toggle');
+    if (vidToggle) {
+        vidToggle.addEventListener('click', () => {
+            if (!localStream) return;
+            const videoTrack = localStream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.enabled = !videoTrack.enabled;
+                vidToggle.querySelector('.icon-on').classList.toggle('hidden', !videoTrack.enabled);
+                vidToggle.querySelector('.icon-off').classList.toggle('hidden', videoTrack.enabled);
+                vidToggle.style.backgroundColor = videoTrack.enabled ? '#4CAF50' : '#f44336';
+            }
+        });
+    }
+
+    const micToggle = document.getElementById('mic-toggle');
+    if (micToggle) {
+        micToggle.addEventListener('click', () => {
+            if (!localStream) return;
+            const audioTrack = localStream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = !audioTrack.enabled;
+                micToggle.querySelector('.icon-on').classList.toggle('hidden', !audioTrack.enabled);
+                micToggle.querySelector('.icon-off').classList.toggle('hidden', audioTrack.enabled);
+                micToggle.style.backgroundColor = audioTrack.enabled ? '#4CAF50' : '#f44336';
+            }
+        });
+    }
 });
+
