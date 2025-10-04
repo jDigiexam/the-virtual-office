@@ -16,7 +16,7 @@
             font-family: sans-serif; 
             overflow: hidden; 
         }
-        #main-container { display: none; border: 1px solid #ccc; width: 1100px; height: 600px; position: relative; } /* Added position relative */
+        #main-container { display: none; border: 1px solid #ccc; width: 1100px; height: 600px; position: relative; }
         canvas { display: block; }
         #chat-container { 
             width: 300px; 
@@ -37,7 +37,6 @@
         }
         #chat-toggle-btn {
             cursor: pointer;
-            font-weight: bold;
             font-size: 20px;
             user-select: none;
         }
@@ -45,14 +44,9 @@
         #chat-history p { margin: 0 0 10px 0; word-wrap: break-word; }
         #chat-input { border: none; padding: 15px; font-size: 1em; border-top: 1px solid #ddd; }
         
-        /* Styles for minimized chat */
-        #chat-container.minimized {
-            height: 45px; /* Height of the title bar */
-        }
+        #chat-container.minimized { height: 45px; }
         #chat-container.minimized #chat-history,
-        #chat-container.minimized #chat-input {
-            display: none;
-        }
+        #chat-container.minimized #chat-input { display: none; }
 
         #join-screen {
             position: absolute; background-color: white; padding: 40px; border-radius: 10px; text-align: center; z-index: 10;
@@ -88,7 +82,6 @@
         .dpad-button:active { background-color: rgba(0, 0, 0, 0.6); }
         #dpad-up { top: 0; left: 50px; } #dpad-down { bottom: 0; left: 50px; } #dpad-left { top: 50px; left: 0; } #dpad-right { top: 50px; right: 0; }
         
-        /* Minimap styles */
         #minimap-container {
             position: fixed;
             bottom: 20px;
@@ -105,17 +98,21 @@
                 width: 100%; height: 30%; border-left: none; border-top: 1px solid #ddd;
             }
             #chat-container.minimized {
-                height: 45px;
-                position: fixed;
-                bottom: 0;
-                left: 0;
+                height: 45px; position: fixed; bottom: 0; left: 0;
             }
             #dpad-container { display: block; }
             #video-container { top: 10px; right: 10px; width: 100px; }
             #localVideo, #remoteVideo { width: 100px; height: 75px; }
             #media-controls { bottom: -25px; }
             #video-toggle, #mic-toggle { width: 40px; font-size: 9px; }
-            #minimap-container { display: none; } /* Hide minimap on small screens for now */
+            
+            /* Make minimap visible on mobile in the top-left corner */
+            #minimap-container { 
+                top: 10px;
+                left: 10px;
+                bottom: auto;
+                right: auto;
+            } 
         }
     </style>
     <!-- Libraries -->
@@ -140,7 +137,7 @@
         <div id="chat-container">
             <h3 id="chat-title">
                 <span>Public Chat</span>
-                <span id="chat-toggle-btn">_</span>
+                <span id="chat-toggle-btn"></span> <!-- Icon will be inserted here by JS -->
             </h3>
             <div id="chat-history"></div>
             <input type="text" id="chat-input" placeholder="Type a message...">
@@ -155,7 +152,6 @@
             </div>
             <video id="remoteVideo" autoplay playsinline></video>
         </div>
-        <!-- Minimap moved inside the main container -->
         <div id="minimap-container">
             <canvas id="minimap-canvas"></canvas>
         </div>
