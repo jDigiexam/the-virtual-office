@@ -334,8 +334,15 @@ window.addEventListener('DOMContentLoaded', () => {
     // Chat Toggle
     const chatContainer = document.getElementById('chat-container');
     const chatToggleButton = document.getElementById('chat-toggle-btn');
+    chatToggleButton.innerHTML = '▼'; // Set initial icon
     chatToggleButton.addEventListener('click', () => {
         chatContainer.classList.toggle('minimized');
+        // Update icon based on state
+        if (chatContainer.classList.contains('minimized')) {
+            chatToggleButton.innerHTML = '💬';
+        } else {
+            chatToggleButton.innerHTML = '▼';
+        }
     });
 
     // D-Pad
@@ -370,3 +377,4 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
