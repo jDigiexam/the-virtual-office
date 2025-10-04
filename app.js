@@ -107,7 +107,6 @@ async function joinGame(name, avatar) {
     if (minimapCanvas) { minimapCanvas.width = minimapWidth; minimapCanvas.height = minimapHeight; minimapCtx = minimapCanvas.getContext('2d'); }
     subscribeToUpdates();
     fetchInitialMessages();
-    setInterval(cleanupInactivePlayers, 5000);
 }
 function checkCollision(r1, r2) { return r1.x < r2.x + r2.w && r1.x + r1.w > r2.x && r1.y < r2.y + r2.h && r1.y + r1.h > r2.y; }
 function handleMovement() {
@@ -147,20 +146,6 @@ function drawPlayers() {
 }
 
 // --- 5. MINIMAP, WEBRTC, & REALTIME ---
-function cleanupInactivePlayers() {
-    const now = new Date();
-    for (const id in otherPlayers) {
-        const other = otherPlayers[id];
-        if (other.last_seen) {
-            const lastSeenDate = new Date(other.last_seen);
-            if ((now - lastSeenDate) / 1000 > 30) {
-                console.log(`Removing inactive player: ${other.name}`);
-                closeConnection(id);
-                delete otherPlayers[id];
-            }
-        }
-    }
-}
 function drawMinimap() {
     if (!minimapCtx) return;
     minimapCtx.fillStyle = 'rgba(200, 200, 200, 0.7)'; minimapCtx.fillRect(0, 0, minimapWidth, minimapHeight);
@@ -168,11 +153,31 @@ function drawMinimap() {
     minimapCtx.fillStyle = 'red'; for (const id in otherPlayers) { const o = otherPlayers[id]; minimapCtx.beginPath(); minimapCtx.arc(o.x * minimapScale, o.y * minimapScale, 3, 0, 2 * Math.PI); minimapCtx.fill(); }
     minimapCtx.fillStyle = 'lime'; minimapCtx.beginPath(); minimapCtx.arc(player.x * minimapScale, player.y * minimapScale, 3, 0, 2 * Math.PI); minimapCtx.fill();
 }
+
 function subscribeToUpdates() {
-    supabaseClient.channel('Presences').on('broadcast', { event: 'webrtc-signal' }, ({ payload }) => { if (payload.targetId === myId) handleSignal(payload); }).on('postgres_changes', { event: '*', table: 'Presences' }, p => {
-        if (p.new.user_id === myId) return;
-        otherPlayers[p.new.user_id] = { ...otherPlayers[p.new.user_id], ...p.new };
-    }).subscribe();
+    const presenceChannel = supabaseClient.channel('Presences');
+
+    presenceChannel
+        .on('broadcast', { event: 'webrtc-signal' }, ({ payload }) => { if (payload.targetId === myId) handleSignal(payload); })
+        .on('postgres_changes', { event: '*', table: 'Presences' }, p => {
+            if (p.new.user_id === myId) return;
+            otherPlayers[p.new.user_id] = { ...otherPlayers[p.new.user_id], ...p.new };
+        })
+        .on('presence', { event: 'leave' }, ({ leftPresences }) => {
+            leftPresences.forEach(pres => {
+                const userId = pres.user_id;
+                if (otherPlayers[userId]) {
+                    console.log(`Player ${otherPlayers[userId].name} left.`);
+                    closeConnection(userId);
+                    delete otherPlayers[userId];
+                }
+            });
+        })
+        .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                await presenceChannel.track({ user_id: myId });
+            }
+        });
     
     supabaseClient.channel('public-messages').on('postgres_changes', { event: 'INSERT', table: 'messages', filter: 'receiver_id=is.null' }, p => displayMessage(p.new, 'chat-history')).subscribe();
     
