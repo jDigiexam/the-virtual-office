@@ -44,6 +44,12 @@ const peerConnections = {};
 const VIDEO_DISTANCE_THRESHOLD = 250;
 const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
+// Minimap Variables
+let minimapCanvas, minimapCtx;
+const minimapScale = 0.1; 
+const minimapWidth = worldWidth * minimapScale;
+const minimapHeight = worldHeight * minimapScale;
+
 // --- 3. p5.js ---
 function preload() {
     const directions = ['down', 'up', 'left', 'right', 'down_left', 'down_right', 'up_left', 'up_right'];
@@ -84,6 +90,7 @@ function draw() {
     handleMovement();
     drawPlayers();
     handleProximityChecks();
+    drawMinimap(); 
 }
 
 // --- 4. GAME LOGIC ---
@@ -105,6 +112,14 @@ async function joinGame(name, avatar) {
     document.getElementById('main-container').style.display = 'flex';
     gameReady = true;
     loop();
+
+    minimapCanvas = document.getElementById('minimap-canvas');
+    if (minimapCanvas) {
+        minimapCanvas.width = minimapWidth;
+        minimapCanvas.height = minimapHeight;
+        minimapCtx = minimapCanvas.getContext('2d');
+    }
+
     subscribeToUpdates();
     fetchInitialMessages();
 }
@@ -167,7 +182,32 @@ function drawPlayers() {
     if (mySprite) { image(mySprite, player.x, player.y, 64, 64); fill(0); text(player.name, player.x + 32, player.y + 80); }
 }
 
-// --- 5. REALTIME & WEBRTC ---
+// --- 5. MINIMAP & WEBRTC ---
+function drawMinimap() {
+    if (!minimapCtx) return;
+
+    minimapCtx.fillStyle = 'rgba(200, 200, 200, 0.7)';
+    minimapCtx.fillRect(0, 0, minimapWidth, minimapHeight);
+
+    minimapCtx.fillStyle = '#333';
+    walls.forEach(wall => {
+        minimapCtx.fillRect(wall.x * minimapScale, wall.y * minimapScale, wall.w * minimapScale, wall.h * minimapScale);
+    });
+
+    minimapCtx.fillStyle = 'red';
+    for (const id in otherPlayers) {
+        const other = otherPlayers[id];
+        minimapCtx.beginPath();
+        minimapCtx.arc(other.x * minimapScale, other.y * minimapScale, 3, 0, 2 * Math.PI);
+        minimapCtx.fill();
+    }
+
+    minimapCtx.fillStyle = 'lime';
+    minimapCtx.beginPath();
+    minimapCtx.arc(player.x * minimapScale, player.y * minimapScale, 3, 0, 2 * Math.PI);
+    minimapCtx.fill();
+}
+
 function subscribeToUpdates() {
     const presenceChannel = supabaseClient.channel('Presences', { config: { broadcast: { self: false } } });
     presenceChannel.on('broadcast', { event: 'webrtc-signal' }, ({ payload }) => {
@@ -291,6 +331,13 @@ window.addEventListener('DOMContentLoaded', () => {
     const chatInput = document.getElementById('chat-input');
     chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') { sendMessage(chatInput.value); chatInput.value = ''; } });
     
+    // Chat Toggle
+    const chatContainer = document.getElementById('chat-container');
+    const chatToggleButton = document.getElementById('chat-toggle-btn');
+    chatToggleButton.addEventListener('click', () => {
+        chatContainer.classList.toggle('minimized');
+    });
+
     // D-Pad
     const dpadUp = document.getElementById('dpad-up'), dpadDown = document.getElementById('dpad-down'), dpadLeft = document.getElementById('dpad-left'), dpadRight = document.getElementById('dpad-right');
     const handleTouchEvent = (button, direction) => {
