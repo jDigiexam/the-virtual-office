@@ -43,27 +43,28 @@
         #join-button { border: none; background-color: #007bff; color: white; cursor: pointer; }
         
         #video-container { position: fixed; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 100; max-height: calc(100vh - 40px); overflow-y: auto; }
-        #localVideo-wrapper { position: relative; overflow: hidden; border-radius: 5px; } /* Added overflow hidden and radius */
-        #localVideo, .remote-video { width: 60px; height: 60px; background-color: #333; border: 2px solid white; border-radius: 5px; object-fit: cover; display: block; } /* Added display block */
+        #localVideo-wrapper { position: relative; overflow: hidden; border-radius: 5px; }
+        #localVideo, .remote-video { width: 60px; height: 60px; background-color: #333; border: 2px solid white; border-radius: 5px; object-fit: cover; display: block; }
         
         #media-controls { 
             position: absolute; 
-            bottom: 5px; /* Position inside the wrapper */
+            bottom: 5px;
             left: 50%; 
             transform: translateX(-50%); 
             display: flex; 
             gap: 5px; 
             opacity: 0; 
             transition: opacity 0.3s;
-            background-color: rgba(0, 0, 0, 0.5); /* Add a background for visibility */
-            padding: 4px;
-            border-radius: 8px;
         }
         #localVideo-wrapper:hover #media-controls { opacity: 1; }
         
-        #video-toggle, #mic-toggle { width: 45px; padding: 4px; font-size: 10px; cursor: pointer; border: none; border-radius: 5px; color: white; }
-        #video-toggle, #mic-toggle { background-color: #f44336; } /* Default to Off color */
-
+        #video-toggle, #mic-toggle { 
+            width: 28px; height: 28px; 
+            cursor: pointer; border: none; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center;
+        }
+        .media-icon { width: 16px; height: 16px; }
+        
         #dpad-container, #minimap-container { position: fixed; z-index: 100; }
         #dpad-container { bottom: 30px; left: 30px; width: 150px; height: 150px; display: none; }
         .dpad-button { position: absolute; width: 50px; height: 50px; background-color: rgba(0, 0, 0, 0.4); color: white; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 24px; user-select: none; }
@@ -74,12 +75,12 @@
         @media (max-width: 768px) {
             body { align-items: flex-start; padding-top: 0; }
             #main-container { flex-direction: column; width: 100%; height: 100vh; }
-            #chat-container { width: 100%; height: 40%; border-left: none; border-top: 1px solid #ddd; position: fixed; bottom: 0; left: 0; }
+            #chat-container { width: 100%; height: auto; border-left: none; border-top: 1px solid #ddd; position: fixed; bottom: 0; left: 0; }
             #chat-container.minimized { height: 45px; }
             #dpad-container, #minimap-container { display: block; }
             #video-container { top: 10px; right: 10px; width: auto; flex-direction: row; flex-wrap: wrap; }
             #localVideo, .remote-video { width: 80px; height: 60px; }
-            #media-controls { bottom: 5px; opacity: 1; transform: translateX(-50%) scale(0.8); }
+            #media-controls { opacity: 1; }
             #minimap-container { top: 10px; left: 10px; bottom: auto; right: auto; } 
         }
     </style>
@@ -125,8 +126,14 @@
             <div id="localVideo-wrapper">
                 <video id="localVideo" autoplay muted playsinline></video>
                 <div id="media-controls">
-                    <button id="video-toggle">Cam Off</button>
-                    <button id="mic-toggle">Mic Off</button>
+                    <button id="video-toggle" style="background-color: #f44336;">
+                        <svg class="media-icon icon-off" viewBox="0 0 24 24" fill="white"><path d="M3.27 3L2 4.27l5 5V13h2.17l2 2H12v-2.17l5.27 5.27L18.55 17 21 19.45V6.5l-4.37 4.37L12 7l-1.45 1.45L3.27 3zM12 15l-3.2-2.2L12 10.25V15zM21 6.5v-1c0-.28-.22-.5-.5-.5H10.5l2 2H20v1l-4.37-3.12L12 7l-1.45 1.45-1.04-1.04L12.44 4.5h8.06c.83 0 1.5.67 1.5 1.5v10.33l-2-2v-4.83z"/></svg>
+                        <svg class="media-icon icon-on hidden" viewBox="0 0 24 24" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                    </button>
+                    <button id="mic-toggle" style="background-color: #f44336;">
+                        <svg class="media-icon icon-off" viewBox="0 0 24 24" fill="white"><path d="M19.29 19.29L4.71 4.71 3.29 6.13 8 10.83V14c0 .55.45 1 1 1h2v3h2v-3h2l2.28 2.28 1.42-1.42L19.29 19.29zM12 12c.55 0 1-.45 1-1V7c0-.55-.45-1-1-1s-1 .45-1 1v4c0 .55.45 1 1 1z"/></svg>
+                        <svg class="media-icon icon-on hidden" viewBox="0 0 24 24" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zM17.3 11c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/></svg>
+                    </button>
                 </div>
             </div>
             <!-- Remote videos will be added here dynamically -->
@@ -146,4 +153,3 @@
     <script src="app.js"></script>
 </body>
 </html>
-
