@@ -3,7 +3,6 @@ const SUPABASE_URL = 'https://cfuzvmmlvajbhilmegvc.supabase.co'; // URL from sup
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmdXp2bW1sdmFqYmhpbG1lZ3ZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyMDYzOTcsImV4cCI6MjA3NDc4MjM5N30.3J2oz6sOPo4eei7KspSk5mB-rIWTu1aL3HaBG57CbnQ'; // Anon Key
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-
 // --- 2. GLOBAL VARIABLES ---
 const myId = crypto.randomUUID();
 const otherPlayers = {};
@@ -236,39 +235,100 @@ async function sendPrivateMessage(text) {
 
 // --- 7. EVENT LISTENERS ---
 window.addEventListener('DOMContentLoaded', () => {
+    // Helper function to safely add event listeners
+    const safeAddListener = (id, event, handler) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener(event, handler);
+        } else {
+            console.error(`Element with ID "${id}" not found. Cannot add listener.`);
+        }
+    };
+
+    // Join Screen
     const joinBtn = document.getElementById('join-button');
     const nameInput = document.getElementById('name-input');
     const avatars = document.querySelectorAll('#avatar-selection img');
-    let selAvatar = 'avatar1';
-    avatars.forEach(img => img.addEventListener('click', () => { avatars.forEach(a => a.classList.remove('selected')); img.classList.add('selected'); selAvatar = img.dataset.avatar; }));
-    joinBtn.addEventListener('click', () => { const name = nameInput.value.trim(); if (name) joinGame(name, selAvatar); });
-    
-    document.getElementById('chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') { sendMessage(e.target.value); e.target.value = ''; } });
-    
-    const chatContainer = document.getElementById('chat-container');
-    const chatToggleBtn = document.getElementById('chat-toggle-btn');
-    chatToggleBtn.innerHTML = '💬'; 
-    chatToggleBtn.addEventListener('click', () => {
-        chatContainer.classList.toggle('minimized');
-        chatToggleBtn.innerHTML = chatContainer.classList.contains('minimized') ? '💬' : '▼';
-        setTimeout(windowResized, 300);
-    });
-    
-    // Corrected listeners for the private message modal
-    document.getElementById('pm-close-btn').addEventListener('click', closePrivateChat);
-    document.getElementById('pm-input').addEventListener('keydown', e => {
-        if (e.key === 'Enter') {
-            sendPrivateMessage(e.target.value);
-            e.target.value = '';
-        }
+    if (joinBtn && nameInput && avatars.length) {
+        let selAvatar = 'avatar1';
+        avatars.forEach(img => {
+            img.addEventListener('click', () => {
+                avatars.forEach(a => a.classList.remove('selected'));
+                img.classList.add('selected');
+                selAvatar = img.dataset.avatar;
+            });
+        });
+        joinBtn.addEventListener('click', () => {
+            const name = nameInput.value.trim();
+            if (name) joinGame(name, selAvatar);
+        });
+    }
+
+    // Chat Listeners
+    safeAddListener('chat-input', 'keydown', e => {
+        if (e.key === 'Enter') { sendMessage(e.target.value); e.target.value = ''; }
     });
 
-    const handleTouchEvent = (btn, dir) => { ['touchstart', 'mousedown'].forEach(e => btn.addEventListener(e, ev => { ev.preventDefault(); touchControls[dir] = true; })); ['touchend', 'mouseup', 'mouseleave'].forEach(e => btn.addEventListener(e, ev => { ev.preventDefault(); touchControls[dir] = false; })); };
-    handleTouchEvent(document.getElementById('dpad-up'), 'up');
-    handleTouchEvent(document.getElementById('dpad-down'), 'down');
-    handleTouchEvent(document.getElementById('dpad-left'), 'left');
-    handleTouchEvent(document.getElementById('dpad-right'), 'right');
-    const vidToggle = document.getElementById('video-toggle'), micToggle = document.getElementById('mic-toggle');
-    vidToggle.addEventListener('click', () => { if (localStream) { const track = localStream.getVideoTracks()[0]; if (track) { track.enabled = !track.enabled; vidToggle.innerText = track.enabled ? 'Cam On' : 'Cam Off'; vidToggle.style.backgroundColor = track.enabled ? '#4CAF50' : '#f44336'; } } });
-    micToggle.addEventListener('click', () => { if (localStream) { const track = localStream.getAudioTracks()[0]; if (track) { track.enabled = !track.enabled; micToggle.innerText = track.enabled ? 'Mic On' : 'Mic Off'; micToggle.style.backgroundColor = track.enabled ? '#4CAF50' : '#f44336'; } } });
+    const chatContainer = document.getElementById('chat-container');
+    const chatToggleBtn = document.getElementById('chat-toggle-btn');
+    if (chatContainer && chatToggleBtn) {
+        chatToggleBtn.innerHTML = '💬'; 
+        chatToggleBtn.addEventListener('click', () => {
+            chatContainer.classList.toggle('minimized');
+            chatToggleBtn.innerHTML = chatContainer.classList.contains('minimized') ? '💬' : '▼';
+            setTimeout(windowResized, 300);
+        });
+    }
+    
+    // Private Message Modal Listeners
+    safeAddListener('pm-close-btn', 'click', closePrivateChat);
+    safeAddListener('pm-input', 'keydown', e => {
+        if (e.key === 'Enter') { sendPrivateMessage(e.target.value); e.target.value = ''; }
+    });
+
+    // D-Pad Listeners
+    const handleTouchEvent = (id, direction) => {
+        const button = document.getElementById(id);
+        if (button) {
+            ['touchstart', 'mousedown'].forEach(event => {
+                button.addEventListener(event, e => { e.preventDefault(); touchControls[direction] = true; }, { passive: false });
+            });
+            ['touchend', 'mouseup', 'mouseleave'].forEach(event => {
+                button.addEventListener(event, e => { e.preventDefault(); touchControls[direction] = false; });
+            });
+        }
+    };
+    handleTouchEvent('dpad-up', 'up');
+    handleTouchEvent('dpad-down', 'down');
+    handleTouchEvent('dpad-left', 'left');
+    handleTouchEvent('dpad-right', 'right');
+
+    // Media Controls Listeners
+    const vidToggle = document.getElementById('video-toggle');
+    if (vidToggle) {
+        vidToggle.addEventListener('click', () => {
+            if (localStream) {
+                const track = localStream.getVideoTracks()[0];
+                if (track) {
+                    track.enabled = !track.enabled;
+                    vidToggle.innerText = track.enabled ? 'Cam On' : 'Cam Off';
+                    vidToggle.style.backgroundColor = track.enabled ? '#4CAF50' : '#f44336';
+                }
+            }
+        });
+    }
+    const micToggle = document.getElementById('mic-toggle');
+    if (micToggle) {
+        micToggle.addEventListener('click', () => {
+            if (localStream) {
+                const track = localStream.getAudioTracks()[0];
+                if (track) {
+                    track.enabled = !track.enabled;
+                    micToggle.innerText = track.enabled ? 'Mic On' : 'Mic Off';
+                    micToggle.style.backgroundColor = track.enabled ? '#4CAF50' : '#f44336';
+                }
+            }
+        });
+    }
 });
+
