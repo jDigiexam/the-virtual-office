@@ -103,7 +103,7 @@ async function joinGame(name, avatar) {
         document.getElementById('localVideo').srcObject = localStream;
     } catch (e) { console.error("Media device error.", e); }
     const spawn = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
-    player = { id: myId, x: spawn.x, y: spawn.y, speed: 3, name, avatar, direction: 'down' };
+    player = { id: myId, x: spawn.x, y: spawn.y, name, avatar, direction: 'down' };
     const main = document.getElementById('main-container');
     document.getElementById('join-screen').style.display = 'none';
     if (window.innerWidth > 768) { main.style.width = '95vw'; main.style.height = '90vh'; }
@@ -116,29 +116,48 @@ async function joinGame(name, avatar) {
     renderChatUI();
 }
 function checkCollision(r1, r2) { return r1.x < r2.x + r2.w && r1.x + r1.w > r2.x && r1.y < r2.y + r2.h && r1.y + r1.h > r2.y; }
+
 function handleMovement() {
+    const BASE_SPEED = 200; // Pixels per second
+    const moveAmount = BASE_SPEED * (deltaTime / 1000); // Frame-rate independent move amount
+
     const SPRITE_W = 64, HITBOX_W = 32, X_OFFSET = (SPRITE_W - HITBOX_W) / 2, Y_OFFSET = 16;
     let dx = 0, dy = 0;
     if (keyIsDown(LEFT_ARROW) || touchControls.left) dx = -1; if (keyIsDown(RIGHT_ARROW) || touchControls.right) dx = 1;
     if (keyIsDown(UP_ARROW) || touchControls.up) dy = -1; if (keyIsDown(DOWN_ARROW) || touchControls.down) dy = 1;
     const isMoving = dx !== 0 || dy !== 0;
+    
     if (isMoving) {
         const hitbox = { x: player.x + X_OFFSET, y: player.y + Y_OFFSET, w: HITBOX_W, h: 48 };
-        if (!walls.some(w => checkCollision({ ...hitbox, x: hitbox.x + dx * player.speed }, w))) player.x += dx * player.speed;
+        
+        // Check X movement
+        if (!walls.some(w => checkCollision({ ...hitbox, x: hitbox.x + dx * moveAmount }, w))) {
+            player.x += dx * moveAmount;
+        }
+
+        // Update hitbox for Y check
         hitbox.x = player.x + X_OFFSET;
-        if (!walls.some(w => checkCollision({ ...hitbox, y: hitbox.y + dy * player.speed }, w))) player.y += dy * player.speed;
+
+        // Check Y movement
+        if (!walls.some(w => checkCollision({ ...hitbox, y: hitbox.y + dy * moveAmount }, w))) {
+            player.y += dy * moveAmount;
+        }
+        
         let dir = player.direction;
         if (dy === -1) dir = 'up'; if (dy === 1) dir = 'down'; if (dx === -1) dir = 'left'; if (dx === 1) dir = 'right';
         if (dy === -1 && dx === -1) dir = 'up_left'; if (dy === -1 && dx === 1) dir = 'up_right';
         if (dy === 1 && dx === -1) dir = 'down_left'; if (dy === 1 && dx === 1) dir = 'down_right';
         player.direction = dir;
     }
+
     player.x = constrain(player.x, 0, worldWidth - 64); player.y = constrain(player.y, 0, worldHeight - 64);
+    
     if (isMoving || wasMoving) {
         supabaseClient.from('Presences').upsert({ user_id: myId, x_pos: Math.round(player.x), y_pos: Math.round(player.y), name: player.name, avatar: player.avatar, direction: player.direction, last_seen: new Date().toISOString() }).then(({error}) => { if(error) console.error(error) });
     }
     wasMoving = isMoving;
 }
+
 function drawPlayers() {
     for (const id in otherPlayers) {
         const other = otherPlayers[id];
@@ -216,7 +235,23 @@ function subscribeToUpdates() {
     }).subscribe();
 }
 function handleProximityChecks() { Object.keys(otherPlayers).forEach(id => { const o = otherPlayers[id], d = dist(player.x, player.y, o.x, o.y); if (d < VIDEO_DISTANCE_THRESHOLD) { if (!peerConnections[id]) initiateCall(id); } else if (peerConnections[id]) closeConnection(id); }); }
-function initiateCall(tId) { console.log(`Calling ${tId}`); peerConnections[tId] = createPeerConnection(tId); if (localStream) localStream.getTracks().forEach(t => peerConnections[tId].addTrack(t, localStream)); }
+
+// --- NEW WEBRTC LOGIC ---
+
+async function initiateCall(targetId) {
+    console.log(`Initiating call with ${targetId}`);
+    peerConnections[targetId] = createPeerConnection(targetId);
+    if (localStream) localStream.getTracks().forEach(track => peerConnections[targetId].addTrack(track, localStream));
+
+    try {
+        const offer = await peerConnections[targetId].createOffer();
+        await peerConnections[targetId].setLocalDescription(offer);
+        sendSignal({ targetId, sdp: peerConnections[targetId].localDescription });
+    } catch (err) {
+        console.error(err);
+    }
+}
+
 function createPeerConnection(tId) {
     const pc = new RTCPeerConnection(config);
     pc.onicecandidate = e => e.candidate && sendSignal({ targetId: tId, candidate: e.candidate });
@@ -233,38 +268,49 @@ function createPeerConnection(tId) {
         }
         remoteVideo.srcObject = e.streams[0];
     };
-    pc.onnegotiationneeded = async () => { try { await pc.setLocalDescription(await pc.createOffer()); sendSignal({ targetId: tId, sdp: pc.localDescription }); } catch (e) { console.error(e); } };
     pc.onconnectionstatechange = () => { if (['disconnected', 'closed', 'failed'].includes(pc.connectionState)) closeConnection(tId); };
     return pc;
 }
+
 async function handleSignal({ fromId, sdp, candidate }) {
     let pc = peerConnections[fromId];
+
+    if (candidate) {
+        if (pc) {
+            try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) { console.error('Error adding ICE candidate', e); }
+        }
+        return;
+    }
+
     if (sdp) {
-        if (!pc) {
-            pc = createPeerConnection(fromId);
-            peerConnections[fromId] = pc;
-            if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-        }
-        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
         if (sdp.type === 'offer') {
+            if (!pc) {
+                peerConnections[fromId] = createPeerConnection(fromId);
+                pc = peerConnections[fromId];
+                if (localStream) localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+            }
             try {
-                await pc.setLocalDescription(await pc.createAnswer());
+                await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
                 sendSignal({ targetId: fromId, sdp: pc.localDescription });
-            } catch (e) { console.error(e); }
+            } catch (err) { console.error(err); }
+        } else if (sdp.type === 'answer') {
+            if (pc) {
+                try { await pc.setRemoteDescription(new RTCSessionDescription(sdp)); } catch (e) { console.error("Error setting remote description", e); }
+            }
         }
-    } else if (candidate && pc) {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
     }
 }
+
 function sendSignal(data) { supabaseClient.channel('Presences').send({ type: 'broadcast', event: 'webrtc-signal', payload: { ...data, fromId: myId } }); }
+
 function closeConnection(tId) {
     if (peerConnections[tId]) {
         peerConnections[tId].close();
         delete peerConnections[tId];
         const remoteVideo = document.getElementById(`video-${tId}`);
-        if (remoteVideo) {
-            remoteVideo.remove();
-        }
+        if (remoteVideo) remoteVideo.remove();
     }
 }
 
@@ -367,4 +413,3 @@ window.addEventListener('DOMContentLoaded', () => {
     if (vidToggle) vidToggle.addEventListener('click', () => { if (localStream) { const track = localStream.getVideoTracks()[0]; if (track) { track.enabled = !track.enabled; vidToggle.innerText = track.enabled ? 'Cam On' : 'Cam Off'; vidToggle.style.backgroundColor = track.enabled ? '#4CAF50' : '#f44336'; } } });
     if (micToggle) micToggle.addEventListener('click', () => { if (localStream) { const track = localStream.getAudioTracks()[0]; if (track) { track.enabled = !track.enabled; micToggle.innerText = track.enabled ? 'Mic On' : 'Mic Off'; micToggle.style.backgroundColor = track.enabled ? '#4CAF50' : '#f44336'; } } });
 });
-
