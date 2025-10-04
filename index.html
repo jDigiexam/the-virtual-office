@@ -44,6 +44,39 @@
             border-top: 1px solid #ddd;
         }
         #dpad-container { display: block; }
+        /* Add this to your existing styles */
+    #video-container {
+        position: absolute;
+        top: 20px;
+        right: 320px; /* 300px for the chat + 20px padding */
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        }
+    #localVideo, #remoteVideo {
+        width: 160px;
+        height: 120px;
+        background-color: #333;
+        border: 2px solid white;
+        border-radius: 5px;
+        }
+/* Hide the remote video element until a call is active */
+    #remoteVideo {
+        display: none;
+        }
+
+/* Adjust for mobile */
+    @media (max-width: 768px) {
+    #video-container {
+        top: 10px;
+        right: 10px;
+        width: 100px;
+        }
+    #localVideo, #remoteVideo {
+        width: 100px;
+        height: 75px;
+        }
+    }
     }
 </style>
     <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.js"></script>
@@ -66,6 +99,10 @@
         <div id="chat-container">
             <div id="chat-history"></div>
             <input type="text" id="chat-input" placeholder="Type a message...">
+        </div>
+        <div id="video-container">
+            <video id="localVideo" autoplay muted></video>
+            <video id="remoteVideo" autoplay></video>
         </div>
     </div>
     
