@@ -62,7 +62,7 @@
         #localVideo-wrapper:hover #media-controls { opacity: 1; }
         
         #video-toggle, #mic-toggle { width: 45px; padding: 4px; font-size: 10px; cursor: pointer; border: none; border-radius: 5px; color: white; }
-        #video-toggle, #mic-toggle { background-color: #4CAF50; }
+        #video-toggle, #mic-toggle { background-color: #f44336; } /* Default to Off color */
 
         #dpad-container, #minimap-container { position: fixed; z-index: 100; }
         #dpad-container { bottom: 30px; left: 30px; width: 150px; height: 150px; display: none; }
@@ -125,8 +125,8 @@
             <div id="localVideo-wrapper">
                 <video id="localVideo" autoplay muted playsinline></video>
                 <div id="media-controls">
-                    <button id="video-toggle">Cam On</button>
-                    <button id="mic-toggle">Mic On</button>
+                    <button id="video-toggle">Cam Off</button>
+                    <button id="mic-toggle">Mic Off</button>
                 </div>
             </div>
             <!-- Remote videos will be added here dynamically -->
