@@ -5,148 +5,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Virtual Office</title>
     <style>
-        body { 
-            margin: 0; 
-            display: flex; 
-            justify-content: center; 
-            align-items: flex-start;
-            padding-top: 5vh;
-            height: 95vh; 
-            background-color: #333; 
-            font-family: sans-serif; 
-            overflow: hidden; 
-        }
-        #main-container { 
-            display: none; 
-            border: 1px solid #ccc; 
-            width: 1100px; 
-            height: 600px; 
-            position: relative; 
-        }
+        body { margin: 0; display: flex; justify-content: center; align-items: flex-start; padding-top: 5vh; height: 95vh; background-color: #333; font-family: sans-serif; overflow: hidden; }
+        #main-container { display: none; border: 1px solid #ccc; width: 95vw; height: 90vh; position: relative; }
         canvas { display: block; }
-        #chat-container { 
-            width: 300px; 
-            background-color: #f9f9f9; 
-            display: flex; 
-            flex-direction: column; 
-            border-left: 1px solid #ddd;
-            transition: height 0.3s ease;
-        }
-        #chat-title { 
-            text-align: center; 
-            margin: 10px; 
-            flex-shrink: 0; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            padding: 0 10px;
-        }
-        #chat-toggle-btn {
-            cursor: pointer;
-            font-size: 20px;
-            user-select: none;
-        }
-        #chat-history { flex-grow: 1; padding: 10px; overflow-y: auto; }
-        #chat-history p { margin: 0 0 10px 0; word-wrap: break-word; }
-        #chat-input { border: none; padding: 15px; font-size: 1em; border-top: 1px solid #ddd; }
         
-        #chat-container.minimized { height: 45px; }
-        #chat-container.minimized #chat-history,
-        #chat-container.minimized #chat-input { display: none; }
+        #chat-container { width: 300px; background-color: #f9f9f9; display: flex; flex-direction: column; border-left: 1px solid #ddd; transition: width 0.3s ease; position: relative; }
+        #chat-toggle-btn { position: absolute; top: 10px; right: 10px; cursor: pointer; font-size: 20px; user-select: none; z-index: 5; }
+        
+        .chat-tabs { display: flex; border-bottom: 1px solid #ddd; }
+        .chat-tab { flex-grow: 1; padding: 10px; text-align: center; cursor: pointer; background-color: #eee; position: relative; }
+        .chat-tab.active { background-color: #fff; font-weight: bold; }
+        .notification-dot { background-color: #ff3b30; width: 8px; height: 8px; border-radius: 50%; position: absolute; top: 8px; right: 8px; }
+        
+        .chat-content { flex-grow: 1; position: relative; overflow: hidden; }
+        .chat-history, #dm-list, #pm-history { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow-y: auto; padding: 10px; box-sizing: border-box; }
+        .chat-history p, #pm-history-content p { margin: 0 0 10px 0; word-wrap: break-word; }
+        
+        #dm-list h3, #pm-history h3 { margin: 0 0 15px 0; text-align: center; }
+        .dm-user { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .dm-user:hover { background-color: #f0f0f0; }
+        .dm-user-notification { color: #ff3b30; font-size: 14px; }
+        
+        #pm-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        #pm-back-btn { cursor: pointer; font-size: 20px; font-weight: bold; }
+        
+        #chat-input { border: none; padding: 15px; font-size: 1em; border-top: 1px solid #ddd; }
+        .hidden { display: none !important; }
 
-        #join-screen {
-            position: absolute; background-color: white; padding: 40px; border-radius: 10px; text-align: center; z-index: 10;
-        }
-        #join-screen input { font-size: 1.2em; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px; }
+        #chat-container.minimized { width: 45px; }
+        #chat-container.minimized .chat-tabs, #chat-container.minimized .chat-content, #chat-container.minimized #chat-input { display: none; }
+        
+        #join-screen { position: absolute; background-color: white; padding: 40px; border-radius: 10px; text-align: center; z-index: 10; }
+        #join-screen input, #join-button { font-size: 1.2em; padding: 10px; margin-bottom: 20px; border-radius: 5px; }
+        #join-screen input { border: 1px solid #ccc; }
         #avatar-selection img { width: 64px; height: 64px; margin: 10px; cursor: pointer; border: 3px solid transparent; border-radius: 50%; }
         #avatar-selection img.selected { border-color: #007bff; }
-        #join-button { font-size: 1.2em; padding: 10px 20px; border: none; background-color: #007bff; color: white; border-radius: 5px; cursor: pointer; }
+        #join-button { border: none; background-color: #007bff; color: white; cursor: pointer; }
         
-        #video-container {
-            position: fixed; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 100;
-        }
-        #localVideo, #remoteVideo {
-            width: 60px; height: 60px; background-color: #333; border: 2px solid white; border-radius: 5px; object-fit: cover;
-        }
+        #video-container { position: fixed; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 100; }
+        #localVideo, #remoteVideo { width: 60px; height: 60px; background-color: #333; border: 2px solid white; border-radius: 5px; object-fit: cover; }
         #remoteVideo { display: none; }
+        #media-controls { position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; }
+        #video-toggle, #mic-toggle { width: 45px; padding: 4px; font-size: 10px; cursor: pointer; border: none; border-radius: 5px; color: white; }
+        #video-toggle, #mic-toggle { background-color: #4CAF50; }
 
-        #media-controls {
-            position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px;
-        }
-        #video-toggle, #mic-toggle {
-            width: 45px; padding: 4px; font-size: 10px; cursor: pointer; border: none; border-radius: 5px; color: white;
-        }
-        #video-toggle { background-color: #4CAF50; }
-        #mic-toggle { background-color: #4CAF50; }
-
-        #dpad-container {
-            position: fixed; bottom: 30px; left: 30px; width: 150px; height: 150px; display: none; z-index: 100;
-        }
-        .dpad-button {
-            position: absolute; width: 50px; height: 50px; background-color: rgba(0, 0, 0, 0.4); color: white; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 24px; user-select: none;
-        }
+        #dpad-container, #minimap-container { position: fixed; z-index: 100; }
+        #dpad-container { bottom: 30px; left: 30px; width: 150px; height: 150px; display: none; }
+        .dpad-button { position: absolute; width: 50px; height: 50px; background-color: rgba(0, 0, 0, 0.4); color: white; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 24px; user-select: none; }
         .dpad-button:active { background-color: rgba(0, 0, 0, 0.6); }
         #dpad-up { top: 0; left: 50px; } #dpad-down { bottom: 0; left: 50px; } #dpad-left { top: 50px; left: 0; } #dpad-right { top: 50px; right: 0; }
-        
-        #minimap-container {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            border: 2px solid #555;
-            background-color: rgba(200, 200, 200, 0.7);
-            z-index: 100;
-        }
-
-        /* Styles for the Private Message Modal */
-        #pm-modal {
-            position: fixed;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: 350px;
-            height: 400px;
-            background-color: white;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            z-index: 200;
-            display: none;
-            flex-direction: column;
-        }
-        #pm-header {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #f1f1f1;
-        }
-        #pm-close-btn { font-size: 20px; cursor: pointer; }
-        #pm-history { flex-grow: 1; overflow-y: auto; padding: 10px; }
-        #pm-input { width: calc(100% - 30px); padding: 15px; border: none; border-top: 1px solid #ddd; }
-
+        #minimap-container { bottom: 20px; right: 20px; border: 2px solid #555; background-color: rgba(200, 200, 200, 0.7); }
 
         @media (max-width: 768px) {
             body { align-items: flex-start; padding-top: 0; }
             #main-container { flex-direction: column; width: 100%; height: 100vh; }
-            #chat-container {
-                width: 100%; height: 30%; border-left: none; border-top: 1px solid #ddd;
-            }
-            #chat-container.minimized {
-                height: 45px; position: fixed; bottom: 0; left: 0;
-            }
-            #dpad-container { display: block; }
+            #chat-container { width: 100%; height: 35%; border-left: none; border-top: 1px solid #ddd; }
+            #chat-container.minimized { height: 45px; position: fixed; bottom: 0; left: 0; }
+            #dpad-container, #minimap-container { display: block; }
             #video-container { top: 10px; right: 10px; width: 100px; }
             #localVideo, #remoteVideo { width: 100px; height: 75px; }
             #media-controls { bottom: -25px; }
             #video-toggle, #mic-toggle { width: 40px; font-size: 9px; }
-            
-            #minimap-container { 
-                top: 10px;
-                left: 10px;
-                bottom: auto;
-                right: auto;
-            } 
+            #minimap-container { top: 10px; left: 10px; bottom: auto; right: auto; } 
         }
     </style>
     <!-- Libraries -->
@@ -167,13 +87,24 @@
     </div>
 
     <div id="main-container">
-        <!-- p5.js canvas will be created here by the script -->
-        <div id="chat-container" class="minimized"> <!-- Start minimized -->
-            <h3 id="chat-title">
-                <span>Public Chat</span>
-                <span id="chat-toggle-btn"></span>
-            </h3>
-            <div id="chat-history"></div>
+        <!-- p5.js canvas will be inserted here -->
+        <div id="chat-container" class="minimized">
+             <span id="chat-toggle-btn"></span>
+            <div class="chat-tabs">
+                <div class="chat-tab active" id="public-tab">Public</div>
+                <div class="chat-tab" id="dm-tab">Messages <div class="notification-dot hidden" id="dm-notification"></div></div>
+            </div>
+            <div class="chat-content">
+                <div class="chat-history" id="public-chat-history"></div>
+                <div id="dm-list" class="hidden"></div>
+                <div id="pm-history" class="hidden">
+                    <div id="pm-header">
+                        <span id="pm-back-btn">←</span>
+                        <h3 id="pm-title"></h3>
+                    </div>
+                    <div class="chat-history" id="pm-history-content"></div>
+                </div>
+            </div>
             <input type="text" id="chat-input" placeholder="Type a message...">
         </div>
         <div id="video-container">
@@ -198,17 +129,6 @@
         <div id="dpad-down" class="dpad-button">▼</div>
     </div>
 
-    <!-- Private Message Modal -->
-    <div id="pm-modal">
-        <div id="pm-header">
-            <strong id="pm-title">Private Chat</strong>
-            <span id="pm-close-btn">&times;</span>
-        </div>
-        <div id="pm-history"></div>
-        <input type="text" id="pm-input" placeholder="Type a private message...">
-    </div>
-
-    <!-- Our main JavaScript file -->
     <script src="app.js"></script>
 </body>
 </html>
