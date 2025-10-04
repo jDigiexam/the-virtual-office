@@ -60,18 +60,36 @@ function preload() {
     }
 }
 
-function setup() {
-    let canvasWidth = 800;
-    let canvasHeight = 600;
+function getCanvasDimensions() {
+    const mainContainer = document.getElementById('main-container');
+    const chatContainer = document.getElementById('chat-container');
+    let canvasWidth, canvasHeight;
+
     if (window.innerWidth <= 768) {
+        // Mobile view: Canvas takes full width and a portion of the height
         canvasWidth = window.innerWidth;
-        canvasHeight = window.innerHeight * 0.7; // Adjusted for mobile chat
+        canvasHeight = window.innerHeight * 0.7;
+    } else {
+        // Desktop view: Canvas takes up the space not used by the chat
+        canvasWidth = mainContainer.offsetWidth - chatContainer.offsetWidth;
+        canvasHeight = mainContainer.offsetHeight;
     }
+    return { canvasWidth, canvasHeight };
+}
+
+function setup() {
+    const { canvasWidth, canvasHeight } = getCanvasDimensions();
     const canvas = createCanvas(canvasWidth, canvasHeight);
     canvas.parent('main-container');
     noLoop();
     textAlign(CENTER);
     textSize(14);
+}
+
+// NEW: This p5.js function is called automatically when the browser window is resized
+function windowResized() {
+    const { canvasWidth, canvasHeight } = getCanvasDimensions();
+    resizeCanvas(canvasWidth, canvasHeight);
 }
 
 function draw() {
@@ -108,8 +126,19 @@ async function joinGame(name, avatar) {
         x: spawnPoint.x, y: spawnPoint.y, speed: 3, name: name, avatar: avatar, direction: 'down'
     };
 
+    const mainContainer = document.getElementById('main-container');
     document.getElementById('join-screen').style.display = 'none';
-    document.getElementById('main-container').style.display = 'flex';
+    
+    // NEW: Make the main container responsive on desktop
+    if (window.innerWidth > 768) {
+        mainContainer.style.width = '95vw';
+        mainContainer.style.height = '90vh';
+    }
+    mainContainer.style.display = 'flex';
+    
+    // Trigger a resize to set the canvas correctly right after it becomes visible
+    windowResized();
+
     gameReady = true;
     loop();
 
@@ -377,4 +406,3 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-
