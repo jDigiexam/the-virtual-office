@@ -27,6 +27,7 @@ const spawnPoints = [ { x: 200, y: 600 }, { x: 800, y: 600 }, { x: 1400, y: 600 
 let localStream, peerConnections = {}, config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 const VIDEO_DISTANCE_THRESHOLD = 250;
 let minimapCanvas, minimapCtx, minimapScale = 0.1, minimapWidth = worldWidth * minimapScale, minimapHeight = worldHeight * minimapScale;
+let notificationIcon;
 
 // State management for the new chat UI
 let chatState = {
@@ -41,6 +42,7 @@ function preload() {
     for (let i = 1; i <= 3; i++) {
         directions.forEach(dir => avatarImages[`avatar${i}`][dir] = loadImage(`avatar${i}_${dir}.png`));
     }
+    notificationIcon = loadImage('chat_notification.png');
 }
 function getCanvasDimensions() {
     const main = document.getElementById('main-container'), chat = document.getElementById('chat-container');
@@ -215,10 +217,56 @@ function subscribeToUpdates() {
 }
 function handleProximityChecks() { Object.keys(otherPlayers).forEach(id => { const o = otherPlayers[id], d = dist(player.x, player.y, o.x, o.y); if (d < VIDEO_DISTANCE_THRESHOLD) { if (!peerConnections[id]) initiateCall(id); } else if (peerConnections[id]) closeConnection(id); }); }
 function initiateCall(tId) { console.log(`Calling ${tId}`); peerConnections[tId] = createPeerConnection(tId); if (localStream) localStream.getTracks().forEach(t => peerConnections[tId].addTrack(t, localStream)); }
-function createPeerConnection(tId) { const pc = new RTCPeerConnection(config); pc.onicecandidate = e => e.candidate && sendSignal({ targetId: tId, candidate: e.candidate }); pc.ontrack = e => { document.getElementById('remoteVideo').style.display = 'block'; document.getElementById('remoteVideo').srcObject = e.streams[0]; }; pc.onnegotiationneeded = async () => { try { await pc.setLocalDescription(await pc.createOffer()); sendSignal({ targetId: tId, sdp: pc.localDescription }); } catch (e) { console.error(e); } }; pc.onconnectionstatechange = () => { if (['disconnected', 'closed', 'failed'].includes(pc.connectionState)) closeConnection(tId); }; return pc; }
-async function handleSignal({ fromId, sdp, candidate }) { let pc = peerConnections[fromId]; if (sdp) { if (!pc) { pc = createPeerConnection(fromId); peerConnections[fromId] = pc; if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream)); } await pc.setRemoteDescription(new RTCSessionDescription(sdp)); if (sdp.type === 'offer') { try { await pc.setLocalDescription(await pc.createAnswer()); sendSignal({ targetId: fromId, sdp: pc.localDescription }); } catch (e) { console.error(e); } } } else if (candidate && pc) await pc.addIceCandidate(new RTCIceCandidate(candidate)); }
+function createPeerConnection(tId) {
+    const pc = new RTCPeerConnection(config);
+    pc.onicecandidate = e => e.candidate && sendSignal({ targetId: tId, candidate: e.candidate });
+    pc.ontrack = e => {
+        const videoContainer = document.getElementById('video-container');
+        let remoteVideo = document.getElementById(`video-${tId}`);
+        if (!remoteVideo) {
+            remoteVideo = document.createElement('video');
+            remoteVideo.id = `video-${tId}`;
+            remoteVideo.className = 'remote-video';
+            remoteVideo.autoplay = true;
+            remoteVideo.playsInline = true;
+            videoContainer.appendChild(remoteVideo);
+        }
+        remoteVideo.srcObject = e.streams[0];
+    };
+    pc.onnegotiationneeded = async () => { try { await pc.setLocalDescription(await pc.createOffer()); sendSignal({ targetId: tId, sdp: pc.localDescription }); } catch (e) { console.error(e); } };
+    pc.onconnectionstatechange = () => { if (['disconnected', 'closed', 'failed'].includes(pc.connectionState)) closeConnection(tId); };
+    return pc;
+}
+async function handleSignal({ fromId, sdp, candidate }) {
+    let pc = peerConnections[fromId];
+    if (sdp) {
+        if (!pc) {
+            pc = createPeerConnection(fromId);
+            peerConnections[fromId] = pc;
+            if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+        }
+        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+        if (sdp.type === 'offer') {
+            try {
+                await pc.setLocalDescription(await pc.createAnswer());
+                sendSignal({ targetId: fromId, sdp: pc.localDescription });
+            } catch (e) { console.error(e); }
+        }
+    } else if (candidate && pc) {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+    }
+}
 function sendSignal(data) { supabaseClient.channel('Presences').send({ type: 'broadcast', event: 'webrtc-signal', payload: { ...data, fromId: myId } }); }
-function closeConnection(tId) { if (peerConnections[tId]) { peerConnections[tId].close(); delete peerConnections[tId]; const v = document.getElementById('remoteVideo'); v.style.display = 'none'; v.srcObject = null; } }
+function closeConnection(tId) {
+    if (peerConnections[tId]) {
+        peerConnections[tId].close();
+        delete peerConnections[tId];
+        const remoteVideo = document.getElementById(`video-${tId}`);
+        if (remoteVideo) {
+            remoteVideo.remove();
+        }
+    }
+}
 
 // --- 6. CHAT ---
 async function renderChatUI() {
@@ -319,3 +367,4 @@ window.addEventListener('DOMContentLoaded', () => {
     if (vidToggle) vidToggle.addEventListener('click', () => { if (localStream) { const track = localStream.getVideoTracks()[0]; if (track) { track.enabled = !track.enabled; vidToggle.innerText = track.enabled ? 'Cam On' : 'Cam Off'; vidToggle.style.backgroundColor = track.enabled ? '#4CAF50' : '#f44336'; } } });
     if (micToggle) micToggle.addEventListener('click', () => { if (localStream) { const track = localStream.getAudioTracks()[0]; if (track) { track.enabled = !track.enabled; micToggle.innerText = track.enabled ? 'Mic On' : 'Mic Off'; micToggle.style.backgroundColor = track.enabled ? '#4CAF50' : '#f44336'; } } });
 });
+
