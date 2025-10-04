@@ -59,7 +59,7 @@ function setup() {
     let canvasHeight = 600;
     if (window.innerWidth <= 768) {
         canvasWidth = window.innerWidth;
-        canvasHeight = window.innerHeight * 0.6;
+        canvasHeight = window.innerHeight * 0.7; // Adjusted for mobile chat
     }
     const canvas = createCanvas(canvasWidth, canvasHeight);
     canvas.parent('main-container');
@@ -260,9 +260,24 @@ function closeConnection(targetId) {
 }
 
 // --- 6. CHAT ---
-async function fetchInitialMessages() { /* ... */ }
-function displayMessage(message) { /* ... */ }
-async function sendMessage(messageText) { /* ... */ }
+async function fetchInitialMessages() {
+    const { data, error } = await supabaseClient.from('messages').select('*').order('created_at', { ascending: true }).limit(50);
+    if (error) console.error('Error fetching messages:', error); else data.forEach(displayMessage);
+}
+
+function displayMessage(message) {
+    const chatHistory = document.getElementById('chat-history');
+    const msgElement = document.createElement('p');
+    msgElement.innerHTML = `<strong>${message.name}:</strong> ${message.message}`;
+    chatHistory.appendChild(msgElement);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+}
+
+async function sendMessage(messageText) {
+    if (!messageText.trim()) return;
+    const { error } = await supabaseClient.from('messages').insert({ name: player.name, message: messageText });
+    if (error) console.error('Error sending message:', error);
+}
 
 // --- 7. EVENT LISTENERS ---
 window.addEventListener('DOMContentLoaded', () => {
@@ -271,9 +286,11 @@ window.addEventListener('DOMContentLoaded', () => {
     let selectedAvatar = 'avatar1';
     avatars.forEach(img => img.addEventListener('click', () => { avatars.forEach(a => a.classList.remove('selected')); img.classList.add('selected'); selectedAvatar = img.dataset.avatar; }));
     joinButton.addEventListener('click', () => { const name = nameInput.value.trim(); if (name) joinGame(name, selectedAvatar); else alert('Please enter your name.'); });
+    
     // Chat
     const chatInput = document.getElementById('chat-input');
     chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') { sendMessage(chatInput.value); chatInput.value = ''; } });
+    
     // D-Pad
     const dpadUp = document.getElementById('dpad-up'), dpadDown = document.getElementById('dpad-down'), dpadLeft = document.getElementById('dpad-left'), dpadRight = document.getElementById('dpad-right');
     const handleTouchEvent = (button, direction) => {
@@ -285,6 +302,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // Media Toggles
     const videoToggleButton = document.getElementById('video-toggle');
     const micToggleButton = document.getElementById('mic-toggle');
+    
     videoToggleButton.addEventListener('click', () => {
         if (!localStream) return;
         const videoTrack = localStream.getVideoTracks()[0];
@@ -294,6 +312,7 @@ window.addEventListener('DOMContentLoaded', () => {
             videoToggleButton.style.backgroundColor = videoTrack.enabled ? '#4CAF50' : '#f44336';
         }
     });
+
     micToggleButton.addEventListener('click', () => {
         if (!localStream) return;
         const audioTrack = localStream.getAudioTracks()[0];
@@ -304,21 +323,3 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-
-// Full function definitions for brevity in other sections
-async function fetchInitialMessages() {
-    const { data, error } = await supabaseClient.from('messages').select('*').order('created_at', { ascending: true }).limit(50);
-    if (error) console.error('Error fetching messages:', error); else data.forEach(displayMessage);
-}
-function displayMessage(message) {
-    const chatHistory = document.getElementById('chat-history');
-    const msgElement = document.createElement('p');
-    msgElement.innerHTML = `<strong>${message.name}:</strong> ${message.message}`;
-    chatHistory.appendChild(msgElement);
-    chatHistory.scrollTop = chatHistory.scrollHeight;
-}
-async function sendMessage(messageText) {
-    if (!messageText.trim()) return;
-    const { error } = await supabaseClient.from('messages').insert({ name: player.name, message: messageText });
-    if (error) console.error('Error sending message:', error);
-}
