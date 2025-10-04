@@ -6,7 +6,8 @@
     <title>Virtual Office</title>
     <style>
         body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #333; font-family: sans-serif; overflow: hidden; }
-        #main-container { display: none; /* Hidden until game starts */ border: 1px solid #ccc; width: 1100px; height: 600px; display: flex; }
+        /* CORRECTED: Removed the conflicting "display: flex" which overrode "display: none" */
+        #main-container { display: none; /* Hidden until game starts */ border: 1px solid #ccc; width: 1100px; height: 600px; }
         canvas { display: block; }
         #chat-container { width: 300px; background-color: #f9f9f9; display: flex; flex-direction: column; border-left: 1px solid #ddd; }
         #chat-title { text-align: center; margin: 10px; flex-shrink: 0; }
@@ -21,23 +22,22 @@
         #avatar-selection img.selected { border-color: #007bff; }
         #join-button { font-size: 1.2em; padding: 10px 20px; border: none; background-color: #007bff; color: white; border-radius: 5px; cursor: pointer; }
         
-        /* NEW: Updated Video Container Styles */
         #video-container {
-            position: fixed; /* Changed to fixed to pin to the viewport */
+            position: fixed;
             top: 20px;
             right: 20px;
             display: flex;
             flex-direction: column;
             gap: 10px;
-            z-index: 100; /* Ensure it stays on top */
+            z-index: 100;
         }
         #localVideo, #remoteVideo {
-            width: 40px;  /* Changed to 40px */
-            height: 40px; /* Changed to 40px */
+            width: 60px;
+            height: 60px;
             background-color: #333;
             border: 2px solid white;
-            border-radius: 5px;
-            object-fit: cover; /* Ensures video fills the square nicely */
+            border-radius: 2px;
+            object-fit: cover;
         }
         #remoteVideo { display: none; }
 
@@ -119,3 +119,4 @@
     <script src="app.js"></script>
 </body>
 </html>
+
