@@ -27,7 +27,6 @@ const spawnPoints = [ { x: 200, y: 600 }, { x: 800, y: 600 }, { x: 1400, y: 600 
 let localStream, peerConnections = {}, config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 const VIDEO_DISTANCE_THRESHOLD = 250;
 let minimapCanvas, minimapCtx, minimapScale = 0.1, minimapWidth = worldWidth * minimapScale, minimapHeight = worldHeight * minimapScale;
-let notificationIcon;
 
 // State management for the new chat UI
 let chatState = {
@@ -42,7 +41,6 @@ function preload() {
     for (let i = 1; i <= 3; i++) {
         directions.forEach(dir => avatarImages[`avatar${i}`][dir] = loadImage(`avatar${i}_${dir}.png`));
     }
-    notificationIcon = loadImage('chat_notification.png');
 }
 function getCanvasDimensions() {
     const main = document.getElementById('main-container'), chat = document.getElementById('chat-container');
