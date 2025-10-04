@@ -91,6 +91,36 @@
             z-index: 100;
         }
 
+        /* NEW: Styles for the Private Message Modal */
+        #pm-modal {
+            display: none;
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 350px;
+            height: 400px;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+        }
+        #pm-header {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f1f1f1;
+        }
+        #pm-close-btn { font-size: 20px; cursor: pointer; }
+        #pm-history { flex-grow: 1; overflow-y: auto; padding: 10px; }
+        #pm-input { width: calc(100% - 30px); padding: 15px; border: none; border-top: 1px solid #ddd; }
+
+
         @media (max-width: 768px) {
             body { align-items: flex-start; padding-top: 0; }
             #main-container { flex-direction: column; width: 100%; height: 100vh; }
@@ -106,7 +136,6 @@
             #media-controls { bottom: -25px; }
             #video-toggle, #mic-toggle { width: 40px; font-size: 9px; }
             
-            /* Make minimap visible on mobile in the top-left corner */
             #minimap-container { 
                 top: 10px;
                 left: 10px;
@@ -134,10 +163,10 @@
 
     <div id="main-container">
         <!-- p5.js canvas will be created here by the script -->
-        <div id="chat-container">
+        <div id="chat-container" class="minimized"> <!-- Start minimized -->
             <h3 id="chat-title">
                 <span>Public Chat</span>
-                <span id="chat-toggle-btn"></span> <!-- Icon will be inserted here by JS -->
+                <span id="chat-toggle-btn"></span>
             </h3>
             <div id="chat-history"></div>
             <input type="text" id="chat-input" placeholder="Type a message...">
@@ -162,6 +191,16 @@
         <div id="dpad-left" class="dpad-button">◄</div>
         <div id="dpad-right" class="dpad-button">►</div>
         <div id="dpad-down" class="dpad-button">▼</div>
+    </div>
+
+    <!-- NEW: Private Message Modal -->
+    <div id="pm-modal">
+        <div id="pm-header">
+            <strong id="pm-title">Private Chat</strong>
+            <span id="pm-close-btn">&times;</span>
+        </div>
+        <div id="pm-history"></div>
+        <input type="text" id="pm-input" placeholder="Type a private message...">
     </div>
 
     <!-- Our main JavaScript file -->
