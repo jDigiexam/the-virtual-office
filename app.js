@@ -186,14 +186,10 @@ function subscribeToUpdates() {
                 if (user_id === myId || !user_id) return;
                 
                 if (!otherPlayers[user_id]) {
-                    console.log(`Player ${name} joined.`);
-                    supabaseClient.from('Presences').select('x_pos, y_pos, direction').eq('user_id', user_id)
+                    supabaseClient.from('Presences').select('x_pos, y_pos, direction').eq('user_id', user_id).maybeSingle()
                         .then(({ data, error }) => {
-                            if (error && error.code !== 'PGRST116') { // PGRST116: "exact one row not found"
-                                console.error('Error fetching new player data:', error);
-                                return;
-                            }
-                            const initialData = data && data.length > 0 ? data[0] : {};
+                            if (error) { console.error('Error fetching new player data:', error); return; }
+                            const initialData = data || {};
                             otherPlayers[user_id] = { user_id, name, avatar, x: initialData.x_pos || 0, y: initialData.y_pos || 0, direction: initialData.direction || 'down' };
                         });
                 }
@@ -240,7 +236,7 @@ async function renderChatUI() {
     dmNotification.classList.toggle('hidden', chatState.unreadDMs.size === 0);
 
     if (chatState.view === 'dm-list') {
-        dmList.innerHTML = '<h3>Direct Messages</h3>';
+        dmList.innerHTML = '';
         Object.values(otherPlayers).sort((a,b) => a.name.localeCompare(b.name)).forEach(user => {
             const userEl = document.createElement('div');
             userEl.className = 'dm-user';
@@ -325,4 +321,3 @@ window.addEventListener('DOMContentLoaded', () => {
     if (vidToggle) vidToggle.addEventListener('click', () => { if (localStream) { const track = localStream.getVideoTracks()[0]; if (track) { track.enabled = !track.enabled; vidToggle.innerText = track.enabled ? 'Cam On' : 'Cam Off'; vidToggle.style.backgroundColor = track.enabled ? '#4CAF50' : '#f44336'; } } });
     if (micToggle) micToggle.addEventListener('click', () => { if (localStream) { const track = localStream.getAudioTracks()[0]; if (track) { track.enabled = !track.enabled; micToggle.innerText = track.enabled ? 'Mic On' : 'Mic Off'; micToggle.style.backgroundColor = track.enabled ? '#4CAF50' : '#f44336'; } } });
 });
-
