@@ -9,20 +9,51 @@
             margin: 0; 
             display: flex; 
             justify-content: center; 
-            align-items: flex-start; /* Aligns container to the top */
-            padding-top: 5vh; /* Adds some space from the top */
+            align-items: flex-start;
+            padding-top: 5vh;
             height: 95vh; 
             background-color: #333; 
             font-family: sans-serif; 
             overflow: hidden; 
         }
-        #main-container { display: none; border: 1px solid #ccc; width: 1100px; height: 600px; }
+        #main-container { display: none; border: 1px solid #ccc; width: 1100px; height: 600px; position: relative; } /* Added position relative */
         canvas { display: block; }
-        #chat-container { width: 300px; background-color: #f9f9f9; display: flex; flex-direction: column; border-left: 1px solid #ddd; }
-        #chat-title { text-align: center; margin: 10px; flex-shrink: 0; }
+        #chat-container { 
+            width: 300px; 
+            background-color: #f9f9f9; 
+            display: flex; 
+            flex-direction: column; 
+            border-left: 1px solid #ddd;
+            transition: height 0.3s ease;
+        }
+        #chat-title { 
+            text-align: center; 
+            margin: 10px; 
+            flex-shrink: 0; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 0 10px;
+        }
+        #chat-toggle-btn {
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 20px;
+            user-select: none;
+        }
         #chat-history { flex-grow: 1; padding: 10px; overflow-y: auto; }
         #chat-history p { margin: 0 0 10px 0; word-wrap: break-word; }
         #chat-input { border: none; padding: 15px; font-size: 1em; border-top: 1px solid #ddd; }
+        
+        /* Styles for minimized chat */
+        #chat-container.minimized {
+            height: 45px; /* Height of the title bar */
+        }
+        #chat-container.minimized #chat-history,
+        #chat-container.minimized #chat-input {
+            display: none;
+        }
+
         #join-screen {
             position: absolute; background-color: white; padding: 40px; border-radius: 10px; text-align: center; z-index: 10;
         }
@@ -56,21 +87,35 @@
         }
         .dpad-button:active { background-color: rgba(0, 0, 0, 0.6); }
         #dpad-up { top: 0; left: 50px; } #dpad-down { bottom: 0; left: 50px; } #dpad-left { top: 50px; left: 0; } #dpad-right { top: 50px; right: 0; }
+        
+        /* Minimap styles */
+        #minimap-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            border: 2px solid #555;
+            background-color: rgba(200, 200, 200, 0.7);
+            z-index: 100;
+        }
 
         @media (max-width: 768px) {
             body { align-items: flex-start; padding-top: 0; }
             #main-container { flex-direction: column; width: 100%; height: 100vh; }
             #chat-container {
-                width: 100%;
-                height: 30%; /* Reduced chat height on mobile */
-                border-left: none;
-                border-top: 1px solid #ddd;
+                width: 100%; height: 30%; border-left: none; border-top: 1px solid #ddd;
+            }
+            #chat-container.minimized {
+                height: 45px;
+                position: fixed;
+                bottom: 0;
+                left: 0;
             }
             #dpad-container { display: block; }
             #video-container { top: 10px; right: 10px; width: 100px; }
             #localVideo, #remoteVideo { width: 100px; height: 75px; }
             #media-controls { bottom: -25px; }
             #video-toggle, #mic-toggle { width: 40px; font-size: 9px; }
+            #minimap-container { display: none; } /* Hide minimap on small screens for now */
         }
     </style>
     <!-- Libraries -->
@@ -93,12 +138,15 @@
     <div id="main-container">
         <!-- p5.js canvas will be created here by the script -->
         <div id="chat-container">
-            <h3 id="chat-title" style="text-align: center; margin: 10px;">Public Chat</h3>
+            <h3 id="chat-title">
+                <span>Public Chat</span>
+                <span id="chat-toggle-btn">_</span>
+            </h3>
             <div id="chat-history"></div>
             <input type="text" id="chat-input" placeholder="Type a message...">
         </div>
         <div id="video-container">
-            <div style="position: relative;"> <!-- Wrapper for positioning buttons -->
+            <div style="position: relative;">
                 <video id="localVideo" autoplay muted playsinline></video>
                 <div id="media-controls">
                     <button id="video-toggle">Cam On</button>
@@ -106,6 +154,10 @@
                 </div>
             </div>
             <video id="remoteVideo" autoplay playsinline></video>
+        </div>
+        <!-- Minimap moved inside the main container -->
+        <div id="minimap-container">
+            <canvas id="minimap-canvas"></canvas>
         </div>
     </div>
     
