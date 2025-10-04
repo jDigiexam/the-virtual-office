@@ -160,10 +160,8 @@ function subscribeToUpdates() {
         .on('broadcast', { event: 'webrtc-signal' }, ({ payload }) => { if (payload.targetId === myId) handleSignal(payload); })
         .on('postgres_changes', { event: '*', table: 'Presences' }, p => {
             if (p.new.user_id === myId) return;
-            // Update an existing player's data
-            if (otherPlayers[p.new.user_id]) {
-                otherPlayers[p.new.user_id] = { ...otherPlayers[p.new.user_id], ...p.new, x: p.new.x_pos, y: p.new.y_pos };
-            }
+            // Always create or update player data to prevent race conditions
+            otherPlayers[p.new.user_id] = { ...otherPlayers[p.new.user_id], ...p.new, x: p.new.x_pos, y: p.new.y_pos };
         })
         .on('presence', { event: 'sync' }, () => {
             const state = presenceChannel.presenceState();
@@ -185,6 +183,7 @@ function subscribeToUpdates() {
              newPresences.forEach(pres => {
                 const userId = pres.user_id;
                 if (userId === myId) return;
+                // Fetch data for the new player and add them
                 supabaseClient.from('Presences').select('*').eq('user_id', userId).single()
                     .then(({ data }) => {
                         if (data) {
@@ -219,7 +218,7 @@ function subscribeToUpdates() {
         }
     }).subscribe();
 }
-function handleProximityChecks() { Object.keys(otherPlayers).forEach(id => { const o = otherPlayers[id], d = dist(player.x, player.y, o.x, o.y); if (d < VIDEO_DISTANCE_THRESHOLD) { if (!peerConnections[id]) initiateCall(id); } else if (peerConnections[id]) closeConnection(id); }); }
+function handleProximityChecks() { Object.keys(otherPlayers).forEach(id => { const o = otherPlayers[id]; const d = dist(player.x, player.y, o.x, o.y); if (d < VIDEO_DISTANCE_THRESHOLD) { if (!peerConnections[id]) initiateCall(id); } else if (peerConnections[id]) closeConnection(id); }); }
 function initiateCall(tId) { console.log(`Calling ${tId}`); peerConnections[tId] = createPeerConnection(tId); if (localStream) localStream.getTracks().forEach(t => peerConnections[tId].addTrack(t, localStream)); }
 function createPeerConnection(tId) { const pc = new RTCPeerConnection(config); pc.onicecandidate = e => e.candidate && sendSignal({ targetId: tId, candidate: e.candidate }); pc.ontrack = e => { document.getElementById('remoteVideo').style.display = 'block'; document.getElementById('remoteVideo').srcObject = e.streams[0]; }; pc.onnegotiationneeded = async () => { try { await pc.setLocalDescription(await pc.createOffer()); sendSignal({ targetId: tId, sdp: pc.localDescription }); } catch (e) { console.error(e); } }; pc.onconnectionstatechange = () => { if (['disconnected', 'closed', 'failed'].includes(pc.connectionState)) closeConnection(tId); }; return pc; }
 async function handleSignal({ fromId, sdp, candidate }) { let pc = peerConnections[fromId]; if (sdp) { if (!pc) { pc = createPeerConnection(fromId); peerConnections[fromId] = pc; if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream)); } await pc.setRemoteDescription(new RTCSessionDescription(sdp)); if (sdp.type === 'offer') { try { await pc.setLocalDescription(await pc.createAnswer()); sendSignal({ targetId: fromId, sdp: pc.localDescription }); } catch (e) { console.error(e); } } } else if (candidate && pc) await pc.addIceCandidate(new RTCIceCandidate(candidate)); }
@@ -362,3 +361,4 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
