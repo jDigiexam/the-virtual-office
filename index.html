@@ -24,124 +24,125 @@
             display: flex; 
             flex-direction: column; 
             border-left: 1px solid #ddd;
-            transition: height 0.3s ease;
+            transition: height 0.3s ease, width 0.3s ease;
         }
-        #chat-title { 
-            text-align: center; 
-            margin: 10px; 
-            flex-shrink: 0; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            padding: 0 10px;
+        #chat-tabs {
+            display: flex;
+            flex-shrink: 0;
+        }
+        .chat-tab {
+            flex-grow: 1;
+            padding: 10px;
+            text-align: center;
+            background-color: #e9e9e9;
+            border: none;
+            cursor: pointer;
+            position: relative;
+        }
+        .chat-tab.active {
+            background-color: #f9f9f9;
+            font-weight: bold;
+        }
+        #dm-notification {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            color: red;
+            font-size: 14px;
+        }
+        .hidden { display: none !important; }
+
+        #chat-content {
+            flex-grow: 1;
+            position: relative;
+            overflow-y: auto;
+        }
+        .chat-history {
+            padding: 10px;
+            height: 100%;
+            overflow-y: auto;
+        }
+        .chat-history p { margin: 0 0 10px 0; word-wrap: break-word; }
+        
+        #dm-list .dm-user {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            position: relative;
+        }
+        #dm-list .dm-user:hover { background-color: #f1f1f1; }
+        .dm-user-notification {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: red;
+            font-size: 14px;
+        }
+
+        #pm-header {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            background-color: #f1f1f1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #pm-back-btn { cursor: pointer; font-weight: bold; }
+
+        #chat-input-container {
+            border-top: 1px solid #ddd;
+        }
+        #chat-input { border: none; padding: 15px; font-size: 1em; width: 100%; box-sizing: border-box; }
+        
+        #chat-toggle-container {
+            flex-shrink: 0;
+            text-align: center;
+            padding: 5px;
+            background-color: #e9e9e9;
+            border-top: 1px solid #ddd;
         }
         #chat-toggle-btn {
             cursor: pointer;
             font-size: 20px;
             user-select: none;
         }
-        #chat-history { flex-grow: 1; padding: 10px; overflow-y: auto; }
-        #chat-history p { margin: 0 0 10px 0; word-wrap: break-word; }
-        #chat-input { border: none; padding: 15px; font-size: 1em; border-top: 1px solid #ddd; }
-        
+
         #chat-container.minimized { height: 45px; }
-        #chat-container.minimized #chat-history,
-        #chat-container.minimized #chat-input { display: none; }
-
-        #join-screen {
-            position: absolute; background-color: white; padding: 40px; border-radius: 10px; text-align: center; z-index: 10;
-        }
-        #join-screen input { font-size: 1.2em; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px; }
-        #avatar-selection img { width: 64px; height: 64px; margin: 10px; cursor: pointer; border: 3px solid transparent; border-radius: 50%; }
-        #avatar-selection img.selected { border-color: #007bff; }
-        #join-button { font-size: 1.2em; padding: 10px 20px; border: none; background-color: #007bff; color: white; border-radius: 5px; cursor: pointer; }
+        #chat-container.minimized #chat-tabs,
+        #chat-container.minimized #chat-content,
+        #chat-container.minimized #chat-input-container { display: none; }
         
-        #video-container {
-            position: fixed; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 100;
-        }
-        #localVideo, #remoteVideo {
-            width: 60px; height: 60px; background-color: #333; border: 2px solid white; border-radius: 5px; object-fit: cover;
-        }
-        #remoteVideo { display: none; }
-
-        #media-controls {
-            position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px;
-        }
-        #video-toggle, #mic-toggle {
-            width: 45px; padding: 4px; font-size: 10px; cursor: pointer; border: none; border-radius: 5px; color: white;
-        }
-        #video-toggle { background-color: #4CAF50; }
-        #mic-toggle { background-color: #4CAF50; }
-
-        #dpad-container {
-            position: fixed; bottom: 30px; left: 30px; width: 150px; height: 150px; display: none; z-index: 100;
-        }
-        .dpad-button {
-            position: absolute; width: 50px; height: 50px; background-color: rgba(0, 0, 0, 0.4); color: white; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 24px; user-select: none;
-        }
-        .dpad-button:active { background-color: rgba(0, 0, 0, 0.6); }
-        #dpad-up { top: 0; left: 50px; } #dpad-down { bottom: 0; left: 50px; } #dpad-left { top: 50px; left: 0; } #dpad-right { top: 50px; right: 0; }
-        
-        #minimap-container {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            border: 2px solid #555;
-            background-color: rgba(200, 200, 200, 0.7);
+        #join-screen, #dpad-container, #video-container, #minimap-container {
+            /* Styles for these are unchanged, but ensure high z-index */
             z-index: 100;
         }
-
-        /* NEW: Styles for the Private Message Modal */
-        #pm-modal {
-            display: none;
-            position: fixed;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: 350px;
-            height: 400px;
-            background-color: white;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            z-index: 200;
-            display: none;
-            flex-direction: column;
-        }
-        #pm-header {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #f1f1f1;
-        }
-        #pm-close-btn { font-size: 20px; cursor: pointer; }
-        #pm-history { flex-grow: 1; overflow-y: auto; padding: 10px; }
-        #pm-input { width: calc(100% - 30px); padding: 15px; border: none; border-top: 1px solid #ddd; }
-
+        #join-screen { position: absolute; background-color: white; padding: 40px; border-radius: 10px; text-align: center; }
+        #join-screen input, #join-button { font-size: 1.2em; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px; }
+        #avatar-selection img { width: 64px; height: 64px; margin: 10px; cursor: pointer; border: 3px solid transparent; border-radius: 50%; }
+        #avatar-selection img.selected { border-color: #007bff; }
+        #video-container { position: fixed; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; }
+        #localVideo, #remoteVideo { width: 60px; height: 60px; background-color: #333; border: 2px solid white; border-radius: 5px; object-fit: cover; }
+        #remoteVideo { display: none; }
+        #media-controls { position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; }
+        #video-toggle, #mic-toggle { width: 45px; padding: 4px; font-size: 10px; cursor: pointer; border: none; border-radius: 5px; color: white; background-color: #4CAF50; }
+        #dpad-container { position: fixed; bottom: 30px; left: 30px; width: 150px; height: 150px; display: none; }
+        .dpad-button { position: absolute; width: 50px; height: 50px; background-color: rgba(0, 0, 0, 0.4); color: white; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 24px; user-select: none; }
+        .dpad-button:active { background-color: rgba(0, 0, 0, 0.6); }
+        #dpad-up { top: 0; left: 50px; } #dpad-down { bottom: 0; left: 50px; } #dpad-left { top: 50px; left: 0; } #dpad-right { top: 50px; right: 0; }
+        #minimap-container { position: fixed; bottom: 20px; right: 20px; border: 2px solid #555; background-color: rgba(200, 200, 200, 0.7); }
 
         @media (max-width: 768px) {
             body { align-items: flex-start; padding-top: 0; }
             #main-container { flex-direction: column; width: 100%; height: 100vh; }
-            #chat-container {
-                width: 100%; height: 30%; border-left: none; border-top: 1px solid #ddd;
-            }
-            #chat-container.minimized {
-                height: 45px; position: fixed; bottom: 0; left: 0;
-            }
+            #chat-container { width: 100%; height: 30%; border-left: none; border-top: 1px solid #ddd; }
+            #chat-container.minimized { height: 45px; position: fixed; bottom: 0; left: 0; }
             #dpad-container { display: block; }
             #video-container { top: 10px; right: 10px; width: 100px; }
             #localVideo, #remoteVideo { width: 100px; height: 75px; }
             #media-controls { bottom: -25px; }
             #video-toggle, #mic-toggle { width: 40px; font-size: 9px; }
-            
-            #minimap-container { 
-                top: 10px;
-                left: 10px;
-                bottom: auto;
-                right: auto;
-            } 
+            #minimap-container { top: 10px; left: 10px; bottom: auto; right: auto; } 
         }
     </style>
     <!-- Libraries -->
@@ -162,17 +163,32 @@
     </div>
 
     <div id="main-container">
-        <!-- p5.js canvas will be created here by the script -->
-        <div id="chat-container" class="minimized"> <!-- Start minimized -->
-            <h3 id="chat-title">
-                <span>Public Chat</span>
+        <!-- p5.js canvas will be created here -->
+        <div id="chat-container" class="minimized">
+            <div id="chat-tabs">
+                <button id="public-tab" class="chat-tab active">Public</button>
+                <button id="dm-tab" class="chat-tab">Messages <span id="dm-notification" class="hidden">●</span></button>
+            </div>
+            <div id="chat-content">
+                <div id="public-chat-history" class="chat-history"></div>
+                <div id="dm-list" class="chat-history hidden"></div>
+                <div id="pm-history" class="chat-history hidden" style="padding: 0;">
+                    <div id="pm-header">
+                        <span id="pm-back-btn">◄ Back</span>
+                        <strong id="pm-title"></strong>
+                    </div>
+                    <div id="pm-history-content" style="padding: 10px; height: calc(100% - 60px); overflow-y: auto;"></div>
+                </div>
+            </div>
+            <div id="chat-input-container">
+                <input type="text" id="chat-input" placeholder="Type a message...">
+            </div>
+            <div id="chat-toggle-container">
                 <span id="chat-toggle-btn"></span>
-            </h3>
-            <div id="chat-history"></div>
-            <input type="text" id="chat-input" placeholder="Type a message...">
+            </div>
         </div>
         <div id="video-container">
-            <div style="position: relative;">
+             <div style="position: relative;">
                 <video id="localVideo" autoplay muted playsinline></video>
                 <div id="media-controls">
                     <button id="video-toggle">Cam On</button>
@@ -191,16 +207,6 @@
         <div id="dpad-left" class="dpad-button">◄</div>
         <div id="dpad-right" class="dpad-button">►</div>
         <div id="dpad-down" class="dpad-button">▼</div>
-    </div>
-
-    <!-- NEW: Private Message Modal -->
-    <div id="pm-modal">
-        <div id="pm-header">
-            <strong id="pm-title">Private Chat</strong>
-            <span id="pm-close-btn">&times;</span>
-        </div>
-        <div id="pm-history"></div>
-        <input type="text" id="pm-input" placeholder="Type a private message...">
     </div>
 
     <!-- Our main JavaScript file -->
