@@ -3,6 +3,7 @@ const SUPABASE_URL = 'https://cfuzvmmlvajbhilmegvc.supabase.co'; // URL from sup
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmdXp2bW1sdmFqYmhpbG1lZ3ZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyMDYzOTcsImV4cCI6MjA3NDc4MjM5N30.3J2oz6sOPo4eei7KspSk5mB-rIWTu1aL3HaBG57CbnQ'; // Anon Key
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+
 // --- 2. GLOBAL VARIABLES ---
 const myId = crypto.randomUUID();
 const otherPlayers = {};
@@ -37,7 +38,7 @@ function preload() {
     for (let i = 1; i <= 3; i++) {
         directions.forEach(dir => avatarImages[`avatar${i}`][dir] = loadImage(`avatar${i}_${dir}.png`));
     }
-    notificationIcon = loadImage('chat_notification.png'); // You'll need to create this small image
+    notificationIcon = loadImage('chat_notification.png');
 }
 function getCanvasDimensions() {
     const main = document.getElementById('main-container'), chat = document.getElementById('chat-container');
@@ -73,12 +74,10 @@ function draw() {
 }
 function mousePressed() {
     if (!gameReady || privateChatTarget) return;
-
     let camX = constrain(player.x - width / 2, 0, worldWidth - width);
     let camY = constrain(player.y - height / 2, 0, worldHeight - height);
     const worldMouseX = mouseX + camX;
     const worldMouseY = mouseY + camY;
-
     for (const id in otherPlayers) {
         const other = otherPlayers[id];
         if (worldMouseX > other.x && worldMouseX < other.x + 64 && worldMouseY > other.y && worldMouseY < other.y + 64) {
@@ -87,7 +86,6 @@ function mousePressed() {
         }
     }
 }
-
 
 // --- 4. GAME LOGIC ---
 async function joinGame(name, avatar) {
@@ -106,6 +104,8 @@ async function joinGame(name, avatar) {
     if (minimapCanvas) { minimapCanvas.width = minimapWidth; minimapCanvas.height = minimapHeight; minimapCtx = minimapCanvas.getContext('2d'); }
     subscribeToUpdates();
     fetchInitialMessages();
+    // Start a recurring check to remove inactive players
+    setInterval(cleanupInactivePlayers, 5000); // Run every 5 seconds
 }
 function checkCollision(r1, r2) { return r1.x < r2.x + r2.w && r1.x + r1.w > r2.x && r1.y < r2.y + r2.h && r1.y + r1.h > r2.y; }
 function handleMovement() {
@@ -143,6 +143,22 @@ function drawPlayers() {
 }
 
 // --- 5. MINIMAP, WEBRTC, & REALTIME ---
+// NEW: Function to clean up inactive players
+function cleanupInactivePlayers() {
+    const now = new Date();
+    for (const id in otherPlayers) {
+        const other = otherPlayers[id];
+        if (other.last_seen) {
+            const lastSeenDate = new Date(other.last_seen);
+            const secondsSinceSeen = (now - lastSeenDate) / 1000;
+            if (secondsSinceSeen > 30) {
+                console.log(`Removing inactive player: ${other.name}`);
+                closeConnection(id); // End any active video call
+                delete otherPlayers[id];
+            }
+        }
+    }
+}
 function drawMinimap() {
     if (!minimapCtx) return;
     minimapCtx.fillStyle = 'rgba(200, 200, 200, 0.7)'; minimapCtx.fillRect(0, 0, minimapWidth, minimapHeight);
@@ -153,7 +169,8 @@ function drawMinimap() {
 function subscribeToUpdates() {
     supabaseClient.channel('Presences').on('broadcast', { event: 'webrtc-signal' }, ({ payload }) => { if (payload.targetId === myId) handleSignal(payload); }).on('postgres_changes', { event: '*', table: 'Presences' }, p => {
         if (p.new.user_id === myId) return;
-        otherPlayers[p.new.user_id] = { ...otherPlayers[p.new.user_id], x: p.new.x_pos, y: p.new.y_pos, name: p.new.name, avatar: p.new.avatar, direction: p.new.direction };
+        // Keep track of the last_seen timestamp
+        otherPlayers[p.new.user_id] = { ...otherPlayers[p.new.user_id], x: p.new.x_pos, y: p.new.y_pos, name: p.new.name, avatar: p.new.avatar, direction: p.new.direction, last_seen: p.new.last_seen };
     }).subscribe();
     supabaseClient.channel('public-messages').on('postgres_changes', { event: 'INSERT', table: 'messages', filter: 'receiver_id=is.null' }, p => displayMessage(p.new, 'chat-history')).subscribe();
     supabaseClient.channel('private-messages').on('postgres_changes', { event: 'INSERT', table: 'messages', filter: `receiver_id=eq.${myId}` }, p => {
