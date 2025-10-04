@@ -27,6 +27,7 @@ const spawnPoints = [ { x: 200, y: 600 }, { x: 800, y: 600 }, { x: 1400, y: 600 
 let localStream, peerConnections = {}, config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 const VIDEO_DISTANCE_THRESHOLD = 250;
 let minimapCanvas, minimapCtx, minimapScale = 0.1, minimapWidth = worldWidth * minimapScale, minimapHeight = worldHeight * minimapScale;
+let notificationIcon;
 
 // State management for the new chat UI
 let chatState = {
@@ -41,6 +42,7 @@ function preload() {
     for (let i = 1; i <= 3; i++) {
         directions.forEach(dir => avatarImages[`avatar${i}`][dir] = loadImage(`avatar${i}_${dir}.png`));
     }
+    notificationIcon = loadImage('chat_notification.png');
 }
 function getCanvasDimensions() {
     const main = document.getElementById('main-container'), chat = document.getElementById('chat-container');
@@ -180,9 +182,21 @@ function subscribeToUpdates() {
         })
         .on('presence', { event: 'join' }, ({ newPresences }) => {
              newPresences.forEach(pres => {
-                if (pres.user_id === myId) return;
-                supabaseClient.from('Presences').select('*').eq('user_id', pres.user_id).single()
-                    .then(({ data }) => { if (data) { otherPlayers[data.user_id] = { ...data, x: data.x_pos, y: data.y_pos }; } });
+                const { user_id, name, avatar } = pres;
+                if (user_id === myId || !user_id) return;
+                
+                if (!otherPlayers[user_id]) {
+                    console.log(`Player ${name} joined.`);
+                    supabaseClient.from('Presences').select('x_pos, y_pos, direction').eq('user_id', user_id)
+                        .then(({ data, error }) => {
+                            if (error && error.code !== 'PGRST116') { // PGRST116: "exact one row not found"
+                                console.error('Error fetching new player data:', error);
+                                return;
+                            }
+                            const initialData = data && data.length > 0 ? data[0] : {};
+                            otherPlayers[user_id] = { user_id, name, avatar, x: initialData.x_pos || 0, y: initialData.y_pos || 0, direction: initialData.direction || 'down' };
+                        });
+                }
             });
         })
         .on('presence', { event: 'leave' }, ({ leftPresences }) => {
@@ -195,7 +209,7 @@ function subscribeToUpdates() {
         })
         .subscribe(async (status) => { if (status === 'SUBSCRIBED') { await presenceChannel.track({ user_id: myId, name: player.name, avatar: player.avatar }); } });
     
-    supabaseClient.channel('public-messages').on('postgres_changes', { event: 'INSERT', table: 'messages', filter: 'receiver_id=is.null' }, p => displayMessage(p, 'public-chat-history')).subscribe();
+    supabaseClient.channel('public-messages').on('postgres_changes', { event: 'INSERT', table: 'messages', filter: 'receiver_id=is.null' }, p => displayMessage(p.new, 'public-chat-history')).subscribe();
     supabaseClient.channel('private-messages').on('postgres_changes', { event: 'INSERT', table: 'messages', filter: `receiver_id=eq.${myId}` }, p => {
         if (chatState.view === 'pm-history' && p.new.sender_id === chatState.activeDM) {
             displayMessage(p.new, 'pm-history-content');
@@ -247,7 +261,7 @@ async function renderChatUI() {
         document.getElementById('pm-title').innerText = `${targetName}`;
         const historyContent = document.getElementById('pm-history-content');
         historyContent.innerHTML = '';
-        const { data } = await supabaseClient.from('messages').select('*').or(`(sender_id.eq.${myId},receiver_id.eq.${targetId}),(sender_id.eq.${targetId},receiver_id.eq.${myId})`).order('created_at');
+        const { data } = await supabaseClient.from('messages').select('*').or(`and(sender_id.eq.${myId},receiver_id.eq.${targetId}),and(sender_id.eq.${targetId},receiver_id.eq.${myId})`).order('created_at');
         if (data) data.forEach(msg => displayMessage(msg, 'pm-history-content'));
     }
 }
@@ -311,3 +325,4 @@ window.addEventListener('DOMContentLoaded', () => {
     if (vidToggle) vidToggle.addEventListener('click', () => { if (localStream) { const track = localStream.getVideoTracks()[0]; if (track) { track.enabled = !track.enabled; vidToggle.innerText = track.enabled ? 'Cam On' : 'Cam Off'; vidToggle.style.backgroundColor = track.enabled ? '#4CAF50' : '#f44336'; } } });
     if (micToggle) micToggle.addEventListener('click', () => { if (localStream) { const track = localStream.getAudioTracks()[0]; if (track) { track.enabled = !track.enabled; micToggle.innerText = track.enabled ? 'Mic On' : 'Mic Off'; micToggle.style.backgroundColor = track.enabled ? '#4CAF50' : '#f44336'; } } });
 });
+
