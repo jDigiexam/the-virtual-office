@@ -24,11 +24,11 @@ const walls = [
   { x: 750, y: 500, w: 400, h: 10 }, { x: 1250, y: 500, w: 250, h: 10 },
   { x: 100, y: 700, w: 150, h: 10 }, { x: 350, y: 700, w: 800, h: 10 },
   { x: 1250, y: 700, w: 250, h: 10 },
-  // Top Rooms
+  // Top Row of Rooms
   { x: 100, y: 100, w: 1400, h: 10 }, { x: 500, y: 100, w: 10, h: 400 },
   { x: 1100, y: 100, w: 10, h: 400 }, { x: 100, y: 100, w: 10, h: 400 },
   { x: 1500, y: 100, w: 10, h: 410 },
-  // Bottom Rooms
+  // Bottom Row of Rooms
   { x: 100, y: 1100, w: 1400, h: 10 }, { x: 800, y: 700, w: 10, h: 400 },
   { x: 100, y: 710, w: 10, h: 390 }, { x: 1500, y: 710, w: 10, h: 390 },
 ];
@@ -38,21 +38,18 @@ const spawnPoints = [
   { x: 300, y: 300 }, { x: 950, y: 900 },
 ];
 
-// WebRTC VARIABLES
+// WebRTC Variables
 let localStream;
 const peerConnections = {};
-const VIDEO_DISTANCE_THRESHOLD = 200;
-const config = {
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-};
+const VIDEO_DISTANCE_THRESHOLD = 250;
+const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
-// --- 3. p5.js PRELOAD, SETUP, AND DRAW ---
+// --- 3. p5.js ---
 function preload() {
     const directions = ['down', 'up', 'left', 'right', 'down_left', 'down_right', 'up_left', 'up_right'];
     for (let i = 1; i <= 3; i++) {
         directions.forEach(dir => {
-            const path = `avatar${i}_${dir}.png`;
-            avatarImages[`avatar${i}`][dir] = loadImage(path);
+            avatarImages[`avatar${i}`][dir] = loadImage(`avatar${i}_${dir}.png`);
         });
     }
 }
@@ -74,17 +71,14 @@ function setup() {
 function draw() {
     if (!gameReady) return;
     background('#d1e8f9');
-
-    // Camera Logic
+    
     let cameraX = player.x - width / 2;
     let cameraY = player.y - height / 2;
     cameraX = constrain(cameraX, 0, worldWidth - width);
     cameraY = constrain(cameraY, 0, worldHeight - height);
     translate(-cameraX, -cameraY);
 
-    // Draw World
-    fill(100);
-    noStroke();
+    fill(100); noStroke();
     walls.forEach(wall => rect(wall.x, wall.y, wall.w, wall.h));
     
     handleMovement();
@@ -99,13 +93,12 @@ async function joinGame(name, avatar) {
         document.getElementById('localVideo').srcObject = localStream;
     } catch (error) {
         console.error("Error accessing media devices.", error);
-        alert("Camera/Mic permission is required for video chat.");
+        alert("Camera and microphone access is required for video chat.");
     }
     
     const spawnPoint = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
     player = {
-        x: spawnPoint.x, y: spawnPoint.y, speed: 3, name: name,
-        avatar: avatar, direction: 'down'
+        x: spawnPoint.x, y: spawnPoint.y, speed: 3, name: name, avatar: avatar, direction: 'down'
     };
 
     document.getElementById('join-screen').style.display = 'none';
@@ -121,9 +114,8 @@ function checkCollision(rect1, rect2) {
 }
 
 function handleMovement() {
-    const SPRITE_W = 64; const SPRITE_H = 64; const HITBOX_W = 32; const HITBOX_H = 48;
-    const X_OFFSET = (SPRITE_W - HITBOX_W) / 2; const Y_OFFSET = SPRITE_H - HITBOX_H;
-    let dx = 0; let dy = 0;
+    const SPRITE_W = 64, SPRITE_H = 64, HITBOX_W = 32, HITBOX_H = 48, X_OFFSET = (SPRITE_W - HITBOX_W) / 2, Y_OFFSET = SPRITE_H - HITBOX_H;
+    let dx = 0, dy = 0;
 
     if (keyIsDown(LEFT_ARROW) || touchControls.left) dx -= 1;
     if (keyIsDown(RIGHT_ARROW) || touchControls.right) dx += 1;
@@ -138,11 +130,13 @@ function handleMovement() {
         if (!walls.some(wall => checkCollision(nextXHitbox, wall))) {
             player.x += dx * player.speed;
         }
+
         playerHitbox.x = player.x + X_OFFSET;
         let nextYHitbox = { ...playerHitbox, y: playerHitbox.y + dy * player.speed };
         if (!walls.some(wall => checkCollision(nextYHitbox, wall))) {
             player.y += dy * player.speed;
         }
+
         let newDirection = player.direction;
         if (dy === -1) newDirection = 'up'; if (dy === 1) newDirection = 'down'; if (dx === -1) newDirection = 'left'; if (dx === 1) newDirection = 'right';
         if (dy === -1 && dx === -1) newDirection = 'up_left'; if (dy === -1 && dx === 1) newDirection = 'up_right';
@@ -158,7 +152,7 @@ function handleMovement() {
             user_id: myId, x_pos: Math.round(player.x), y_pos: Math.round(player.y),
             name: player.name, avatar: player.avatar, direction: player.direction,
             last_seen: new Date().toISOString()
-        }).then(response => { if (response.error) console.error(response.error); });
+        }).then(({ error }) => { if (error) console.error(error); });
     }
     wasMoving = isMoving;
 }
@@ -173,35 +167,30 @@ function drawPlayers() {
     if (mySprite) { image(mySprite, player.x, player.y, 64, 64); fill(0); text(player.name, player.x + 32, player.y + 80); }
 }
 
-// --- 5. REALTIME AND WEBRTC ---
+// --- 5. REALTIME & WEBRTC ---
 function subscribeToUpdates() {
     const presenceChannel = supabaseClient.channel('Presences', { config: { broadcast: { self: false } } });
-
     presenceChannel.on('broadcast', { event: 'webrtc-signal' }, ({ payload }) => {
         if (payload.targetId === myId) handleSignal(payload);
     });
-
-    presenceChannel.on('postgres_changes', { event: '*', schema: 'public', table: 'Presences' }, payload => {
-        const p = payload.new;
-        if (p.user_id !== myId) otherPlayers[p.user_id] = { x: p.x_pos, y: p.y_pos, name: p.name, avatar: p.avatar, direction: p.direction };
+    presenceChannel.on('postgres_changes', { event: '*', schema: 'public', table: 'Presences' }, (payload) => {
+        const updated = payload.new;
+        if (updated.user_id === myId) return;
+        otherPlayers[updated.user_id] = { x: updated.x_pos, y: updated.y_pos, name: updated.name, avatar: updated.avatar, direction: updated.direction };
     }).subscribe();
-
-    supabaseClient.channel('messages').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-        displayMessage(payload.new);
-    }).subscribe();
+    supabaseClient.channel('messages').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => displayMessage(payload.new)).subscribe();
 }
 
 function handleProximityChecks() {
-    for (const id in otherPlayers) {
+    Object.keys(otherPlayers).forEach(id => {
         const other = otherPlayers[id];
-        if (!other.x || !other.y) continue;
         const distance = dist(player.x, player.y, other.x, other.y);
-        if (distance < VIDEO_DISTANCE_THRESHOLD && !peerConnections[id]) {
-            initiateCall(id);
-        } else if (distance >= VIDEO_DISTANCE_THRESHOLD && peerConnections[id]) {
-            closeConnection(id);
+        if (distance < VIDEO_DISTANCE_THRESHOLD) {
+            if (!peerConnections[id]) initiateCall(id);
+        } else {
+            if (peerConnections[id]) closeConnection(id);
         }
-    }
+    });
 }
 
 function initiateCall(targetId) {
@@ -231,36 +220,36 @@ function createPeerConnection(targetId) {
     return pc;
 }
 
-async function handleSignal(signal) {
-    const fromId = signal.fromId;
-    let pc = peerConnections[fromId];
-    if (signal.sdp) {
+async function handleSignal({ fromId, sdp, candidate }) {
+    const targetId = fromId;
+    let pc = peerConnections[targetId];
+    if (sdp) {
         if (!pc) {
-            peerConnections[fromId] = createPeerConnection(fromId);
-            pc = peerConnections[fromId];
-            if (localStream) localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+            peerConnections[targetId] = createPeerConnection(targetId);
+            pc = peerConnections[targetId];
+            if (localStream) {
+                localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+            }
         }
-        await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-        if (signal.sdp.type === 'offer') {
+        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+        if (sdp.type === 'offer') {
             try {
                 await pc.setLocalDescription(await pc.createAnswer());
-                sendSignal({ targetId: fromId, sdp: pc.localDescription });
+                sendSignal({ targetId, sdp: pc.localDescription });
             } catch (err) { console.error(err); }
         }
-    } else if (signal.candidate && pc) {
-        await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+    } else if (candidate) {
+        if (pc) await pc.addIceCandidate(new RTCIceCandidate(candidate));
     }
 }
 
 function sendSignal(data) {
     supabaseClient.channel('Presences').send({
-        type: 'broadcast', event: 'webrtc-signal',
-        payload: { ...data, fromId: myId },
+        type: 'broadcast', event: 'webrtc-signal', payload: { ...data, fromId: myId },
     });
 }
 
 function closeConnection(targetId) {
-    console.log(`Closing connection with ${targetId}`);
     if (peerConnections[targetId]) {
         peerConnections[targetId].close();
         delete peerConnections[targetId];
@@ -270,12 +259,57 @@ function closeConnection(targetId) {
     }
 }
 
-// --- 6. CHAT AND UI ---
+// --- 6. CHAT ---
+async function fetchInitialMessages() { /* ... */ }
+function displayMessage(message) { /* ... */ }
+async function sendMessage(messageText) { /* ... */ }
+
+// --- 7. EVENT LISTENERS ---
+window.addEventListener('DOMContentLoaded', () => {
+    // Join Screen
+    const joinButton = document.getElementById('join-button'), nameInput = document.getElementById('name-input'), avatars = document.querySelectorAll('#avatar-selection img');
+    let selectedAvatar = 'avatar1';
+    avatars.forEach(img => img.addEventListener('click', () => { avatars.forEach(a => a.classList.remove('selected')); img.classList.add('selected'); selectedAvatar = img.dataset.avatar; }));
+    joinButton.addEventListener('click', () => { const name = nameInput.value.trim(); if (name) joinGame(name, selectedAvatar); else alert('Please enter your name.'); });
+    // Chat
+    const chatInput = document.getElementById('chat-input');
+    chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') { sendMessage(chatInput.value); chatInput.value = ''; } });
+    // D-Pad
+    const dpadUp = document.getElementById('dpad-up'), dpadDown = document.getElementById('dpad-down'), dpadLeft = document.getElementById('dpad-left'), dpadRight = document.getElementById('dpad-right');
+    const handleTouchEvent = (button, direction) => {
+        ['touchstart', 'mousedown'].forEach(evt => button.addEventListener(evt, e => { e.preventDefault(); touchControls[direction] = true; }, { passive: false }));
+        ['touchend', 'mouseup', 'mouseleave'].forEach(evt => button.addEventListener(evt, e => { e.preventDefault(); touchControls[direction] = false; }));
+    };
+    handleTouchEvent(dpadUp, 'up'); handleTouchEvent(dpadDown, 'down'); handleTouchEvent(dpadLeft, 'left'); handleTouchEvent(dpadRight, 'right');
+
+    // Media Toggles
+    const videoToggleButton = document.getElementById('video-toggle');
+    const micToggleButton = document.getElementById('mic-toggle');
+    videoToggleButton.addEventListener('click', () => {
+        if (!localStream) return;
+        const videoTrack = localStream.getVideoTracks()[0];
+        if (videoTrack) {
+            videoTrack.enabled = !videoTrack.enabled;
+            videoToggleButton.innerText = videoTrack.enabled ? 'Cam On' : 'Cam Off';
+            videoToggleButton.style.backgroundColor = videoTrack.enabled ? '#4CAF50' : '#f44336';
+        }
+    });
+    micToggleButton.addEventListener('click', () => {
+        if (!localStream) return;
+        const audioTrack = localStream.getAudioTracks()[0];
+        if (audioTrack) {
+            audioTrack.enabled = !audioTrack.enabled;
+            micToggleButton.innerText = audioTrack.enabled ? 'Mic On' : 'Mic Off';
+            micToggleButton.style.backgroundColor = audioTrack.enabled ? '#4CAF50' : '#f44336';
+        }
+    });
+});
+
+// Full function definitions for brevity in other sections
 async function fetchInitialMessages() {
     const { data, error } = await supabaseClient.from('messages').select('*').order('created_at', { ascending: true }).limit(50);
     if (error) console.error('Error fetching messages:', error); else data.forEach(displayMessage);
 }
-
 function displayMessage(message) {
     const chatHistory = document.getElementById('chat-history');
     const msgElement = document.createElement('p');
@@ -283,34 +317,8 @@ function displayMessage(message) {
     chatHistory.appendChild(msgElement);
     chatHistory.scrollTop = chatHistory.scrollHeight;
 }
-
 async function sendMessage(messageText) {
     if (!messageText.trim()) return;
     const { error } = await supabaseClient.from('messages').insert({ name: player.name, message: messageText });
     if (error) console.error('Error sending message:', error);
 }
-
-window.addEventListener('DOMContentLoaded', () => {
-    const joinButton = document.getElementById('join-button');
-    const nameInput = document.getElementById('name-input');
-    const avatars = document.querySelectorAll('#avatar-selection img');
-    let selectedAvatar = 'avatar1';
-    avatars.forEach(img => { img.addEventListener('click', () => { avatars.forEach(a => a.classList.remove('selected')); img.classList.add('selected'); selectedAvatar = img.dataset.avatar; }); });
-    joinButton.addEventListener('click', () => { const name = nameInput.value.trim(); if (name) joinGame(name, selectedAvatar); else alert('Please enter your name.'); });
-    const chatInput = document.getElementById('chat-input');
-    chatInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') { sendMessage(chatInput.value); chatInput.value = ''; } });
-    
-    const dpadUp = document.getElementById('dpad-up');
-    const dpadDown = document.getElementById('dpad-down');
-    const dpadLeft = document.getElementById('dpad-left');
-    const dpadRight = document.getElementById('dpad-right');
-    const handleTouchEvent = (button, direction) => {
-        button.addEventListener('touchstart', (e) => { e.preventDefault(); touchControls[direction] = true; }, { passive: false });
-        button.addEventListener('touchend', (e) => { e.preventDefault(); touchControls[direction] = false; });
-        button.addEventListener('mousedown', (e) => { e.preventDefault(); touchControls[direction] = true; });
-        button.addEventListener('mouseup', (e) => { e.preventDefault(); touchControls[direction] = false; });
-        button.addEventListener('mouseleave', (e) => { touchControls[direction] = false; });
-    };
-    handleTouchEvent(dpadUp, 'up'); handleTouchEvent(dpadDown, 'down');
-    handleTouchEvent(dpadLeft, 'left'); handleTouchEvent(dpadRight, 'right');
-});
