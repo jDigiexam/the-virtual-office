@@ -101,9 +101,14 @@ async function joinGame(name, avatar) {
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         document.getElementById('localVideo').srcObject = localStream;
+
+        // Start with media off by default
+        localStream.getVideoTracks().forEach(track => track.enabled = false);
+        localStream.getAudioTracks().forEach(track => track.enabled = false);
+        
     } catch (e) { console.error("Media device error.", e); }
     const spawn = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
-    player = { id: myId, x: spawn.x, y: spawn.y, name, avatar, direction: 'down' };
+    player = { id: myId, x: spawn.x, y: spawn.y, speed: 3, name, avatar, direction: 'down' };
     const main = document.getElementById('main-container');
     document.getElementById('join-screen').style.display = 'none';
     if (window.innerWidth > 768) { main.style.width = '95vw'; main.style.height = '90vh'; }
