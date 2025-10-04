@@ -5,98 +5,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Virtual Office</title>
     <style>
-    body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #333; font-family: sans-serif; }
-    #main-container { display: flex; border: 1px solid #ccc; width: 1100px; height: 600px; }
-    canvas { display: block; }
-    #chat-container { width: 300px; background-color: #f9f9f9; display: flex; flex-direction: column; border-left: 1px solid #ddd; }
-    #chat-title { text-align: center; margin: 10px; flex-shrink: 0; }
-    #chat-history { flex-grow: 1; padding: 10px; overflow-y: auto; }
-    #chat-history p { margin: 0 0 10px 0; word-wrap: break-word; }
-    #chat-input { border: none; padding: 15px; font-size: 1em; border-top: 1px solid #ddd; }
-    #join-screen {
-        position: absolute; background-color: white; padding: 40px; border-radius: 10px; text-align: center; z-index: 10;
-    }
-    #join-screen input { font-size: 1.2em; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px; }
-    #avatar-selection img { width: 64px; height: 64px; margin: 10px; cursor: pointer; border: 3px solid transparent; border-radius: 50%; }
-    #avatar-selection img.selected { border-color: #007bff; }
-    #join-button { font-size: 1.2em; padding: 10px 20px; border: none; background-color: #007bff; color: white; border-radius: 5px; cursor: pointer; }
-    #dpad-container {
-        position: fixed; bottom: 30px; left: 30px; width: 150px; height: 150px; display: none; z-index: 100;
-    }
-    .dpad-button {
-        position: absolute; width: 50px; height: 50px; background-color: rgba(0, 0, 0, 0.4); color: white; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 24px; user-select: none;
-    }
-    .dpad-button:active { background-color: rgba(0, 0, 0, 0.6); }
-    #dpad-up { top: 0; left: 50px; } #dpad-down { bottom: 0; left: 50px; } #dpad-left { top: 50px; left: 0; } #dpad-right { top: 50px; right: 0; }
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #333; font-family: sans-serif; overflow: hidden; }
+        #main-container { display: none; /* Hidden until game starts */ border: 1px solid #ccc; width: 1100px; height: 600px; display: flex; }
+        canvas { display: block; }
+        #chat-container { width: 300px; background-color: #f9f9f9; display: flex; flex-direction: column; border-left: 1px solid #ddd; }
+        #chat-title { text-align: center; margin: 10px; flex-shrink: 0; }
+        #chat-history { flex-grow: 1; padding: 10px; overflow-y: auto; }
+        #chat-history p { margin: 0 0 10px 0; word-wrap: break-word; }
+        #chat-input { border: none; padding: 15px; font-size: 1em; border-top: 1px solid #ddd; }
+        #join-screen {
+            position: absolute; background-color: white; padding: 40px; border-radius: 10px; text-align: center; z-index: 10;
+        }
+        #join-screen input { font-size: 1.2em; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px; }
+        #avatar-selection img { width: 64px; height: 64px; margin: 10px; cursor: pointer; border: 3px solid transparent; border-radius: 50%; }
+        #avatar-selection img.selected { border-color: #007bff; }
+        #join-button { font-size: 1.2em; padding: 10px 20px; border: none; background-color: #007bff; color: white; border-radius: 5px; cursor: pointer; }
+        
+        /* NEW: Updated Video Container Styles */
+        #video-container {
+            position: fixed; /* Changed to fixed to pin to the viewport */
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100; /* Ensure it stays on top */
+        }
+        #localVideo, #remoteVideo {
+            width: 40px;  /* Changed to 40px */
+            height: 40px; /* Changed to 40px */
+            background-color: #333;
+            border: 2px solid white;
+            border-radius: 5px;
+            object-fit: cover; /* Ensures video fills the square nicely */
+        }
+        #remoteVideo { display: none; }
 
-    /* NEW: Media Query for responsive layout on small screens */
-    @media (max-width: 768px) {
-        body { align-items: flex-start; }
-        #main-container {
-            flex-direction: column; /* Stack items vertically */
-            width: 100%;
-            height: 100vh; /* Use full viewport height */
+        #dpad-container {
+            position: fixed; bottom: 30px; left: 30px; width: 150px; height: 150px; display: none; z-index: 100;
         }
-        #chat-container {
-            width: 100%; /* Chat takes full width */
-            height: 40%; /* Chat takes bottom 40% of the screen */
-            border-left: none;
-            border-top: 1px solid #ddd;
+        .dpad-button {
+            position: absolute; width: 50px; height: 50px; background-color: rgba(0, 0, 0, 0.4); color: white; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 24px; user-select: none;
         }
-        #dpad-container { display: block; }
-        /* Add this to your existing styles */
-    #video-container {
-        position: absolute;
-        top: 20px;
-        right: 320px; /* 300px for the chat + 20px padding */
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        }
-    #localVideo, #remoteVideo {
-        width: 160px;
-        height: 120px;
-        background-color: #333;
-        border: 2px solid white;
-        border-radius: 5px;
-        }
-/* Hide the remote video element until a call is active */
-    #remoteVideo {
-        display: none;
-        }
+        .dpad-button:active { background-color: rgba(0, 0, 0, 0.6); }
+        #dpad-up { top: 0; left: 50px; } #dpad-down { bottom: 0; left: 50px; } #dpad-left { top: 50px; left: 0; } #dpad-right { top: 50px; right: 0; }
 
-/* Adjust for mobile */
-    @media (max-width: 768px) {
-    #video-container {
-        top: 10px;
-        right: 10px;
-        width: 100px;
+        /* Media Query for responsive layout on small screens */
+        @media (max-width: 768px) {
+            body { align-items: flex-start; }
+            #main-container {
+                flex-direction: column; /* Stack items vertically */
+                width: 100%;
+                height: 100vh; /* Use full viewport height */
+            }
+            #chat-container {
+                width: 100%; /* Chat takes full width */
+                height: 40%; /* Chat takes bottom 40% of the screen */
+                border-left: none;
+                border-top: 1px solid #ddd;
+            }
+            #dpad-container { display: block; }
+            
+            /* Mobile video styles (we can adjust these later) */
+            #video-container {
+                top: 10px;
+                right: 10px;
+                width: 100px;
+            }
+            #localVideo, #remoteVideo {
+                width: 100px;
+                height: 75px;
+            }
         }
-    #localVideo, #remoteVideo {
-        width: 100px;
-        height: 75px;
-        }
-    }
-    }
-</style>
+    </style>
+    <!-- Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div id="join-screen">
-        <h2>Join the Virtual Office</h2>
+        <h2>Join the Office</h2>
         <input type="text" id="name-input" placeholder="Enter your name" maxlength="15">
         <div id="avatar-selection">
             <p>Choose your avatar:</p>
-            <img src="avatar1.png" data-avatar="avatar1" class="selected">
-            <img src="avatar2.png" data-avatar="avatar2">
-            <img src="avatar3.png" data-avatar="avatar3">
+            <img src="avatar1_down.png" data-avatar="avatar1" class="selected">
+            <img src="avatar2_down.png" data-avatar="avatar2">
+            <img src="avatar3_down.png" data-avatar="avatar3">
         </div>
         <button id="join-button">Join</button>
     </div>
 
-    <div id="main-container" style="display: none;">
+    <div id="main-container">
+        <!-- p5.js canvas will be created here by the script -->
         <div id="chat-container">
+            <h3 id="chat-title" style="text-align: center; margin: 10px;">Public Chat</h3>
             <div id="chat-history"></div>
             <input type="text" id="chat-input" placeholder="Type a message...">
         </div>
@@ -113,6 +115,7 @@
         <div id="dpad-down" class="dpad-button">▼</div>
     </div>
 
+    <!-- Our main JavaScript file -->
     <script src="app.js"></script>
 </body>
 </html>
