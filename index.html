@@ -21,7 +21,6 @@
         .chat-history, #dm-list, #pm-history { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow-y: auto; padding: 10px; box-sizing: border-box; }
         .chat-history p, #pm-history-content p { margin: 0 0 10px 0; word-wrap: break-word; }
         
-        #dm-list h3, #pm-history h3 { margin: 0 0 15px 0; text-align: center; }
         .dm-user { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .dm-user:hover { background-color: #f0f0f0; }
         .dm-user-notification { color: #ff3b30; font-size: 14px; }
@@ -127,12 +126,12 @@
                 <video id="localVideo" autoplay muted playsinline></video>
                 <div id="media-controls">
                     <button id="video-toggle" style="background-color: #f44336;">
-                        <svg class="media-icon icon-off" viewBox="0 0 24 24" fill="white"><path d="M3.27 3L2 4.27l5 5V13h2.17l2 2H12v-2.17l5.27 5.27L18.55 17 21 19.45V6.5l-4.37 4.37L12 7l-1.45 1.45L3.27 3zM12 15l-3.2-2.2L12 10.25V15zM21 6.5v-1c0-.28-.22-.5-.5-.5H10.5l2 2H20v1l-4.37-3.12L12 7l-1.45 1.45-1.04-1.04L12.44 4.5h8.06c.83 0 1.5.67 1.5 1.5v10.33l-2-2v-4.83z"/></svg>
+                        <svg class="media-icon icon-off" viewBox="0 0 24 24" fill="white"><path d="M21 6.5l-4 4V7c0-.55-.45-1-1-1H9.82L21 17.18V6.5zM3.27 4.73L2 6l3.03 3.03V17c0 .55.45 1 1 1h9.18l2.82 2.82L19.27 20 3.27 4.73z"/></svg>
                         <svg class="media-icon icon-on hidden" viewBox="0 0 24 24" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
                     </button>
                     <button id="mic-toggle" style="background-color: #f44336;">
-                        <svg class="media-icon icon-off" viewBox="0 0 24 24" fill="white"><path d="M19.29 19.29L4.71 4.71 3.29 6.13 8 10.83V14c0 .55.45 1 1 1h2v3h2v-3h2l2.28 2.28 1.42-1.42L19.29 19.29zM12 12c.55 0 1-.45 1-1V7c0-.55-.45-1-1-1s-1 .45-1 1v4c0 .55.45 1 1 1z"/></svg>
-                        <svg class="media-icon icon-on hidden" viewBox="0 0 24 24" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zM17.3 11c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/></svg>
+                        <svg class="media-icon icon-off" viewBox="0 0 24 24" fill="white"><path d="M10.8 4.9c0-.66.54-1.2 1.2-1.2s1.2.54 1.2 1.2v5.59l1.58 1.58c.01-.21.02-.42.02-.63V5c0-1.66-1.34-3-3-3S9 3.34 9 5v1.18l1.8 1.8V4.9zm4.31 9.22c.14-.27.29-.53.49-.76l-1.42-1.42c-.37.51-.83.94-1.38 1.25V14c.55 0 1-.45 1-1h-1.7c0 1.84-1.3 3.4-3 3.82V21h-2v-3.18C7.21 17.4 5 14.48 5 11H6.7c0 .85.34 1.63.88 2.2l1.45 1.45c-.6-.49-1.09-1.09-1.43-1.77H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.3-.06.59-.15.87-.26l1.42 1.42c-.59.43-1.25.75-1.99.93v-1.7c1.02-.27 1.94-.85 2.7-1.64zM2.1 4.93L.69 6.34 7.34 13l-.01.01H7.3V14c0 .55.45 1 1 1h.17l5.55 5.55 1.41-1.41L2.1 4.93z"/></svg>
+                        <svg class="media-icon icon-on hidden" viewBox="0 0 24 24" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/></svg>
                     </button>
                 </div>
             </div>
@@ -153,3 +152,4 @@
     <script src="app.js"></script>
 </body>
 </html>
+
